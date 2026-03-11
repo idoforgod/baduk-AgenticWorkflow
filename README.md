@@ -157,15 +157,16 @@ graph LR
 | `BADUK-*.md` | 자식 | 바둑 도메인 고유 아키텍처, 사용법 |
 | `CLAUDE.md`, `AGENTS.md`, `soul.md` | 공유 | 부모로부터 상속, 자식이 활용 |
 
+자식 시스템은 부모 프레임워크 문서 없이도 **독립적으로 이해·운영** 가능합니다.
+
 ## 문서 읽기 순서
 
-| 순서 | 문서 | 목적 |
-|------|------|------|
-| 1 | **이 파일** (README.md) | 프로젝트 전체 개요 |
-| 2 | [`BADUK-ARCHITECTURE-AND-PHILOSOPHY.md`](BADUK-ARCHITECTURE-AND-PHILOSOPHY.md) | 바둑 앱 아키텍처 + 설계 철학 |
-| 3 | [`BADUK-USER-MANUAL.md`](BADUK-USER-MANUAL.md) | 앱 설치·실행·업데이트 매뉴얼 |
-| 4 | [`prompt/workflow.md`](prompt/workflow.md) | 25-step 워크플로우 전체 정의 |
-| 5 | [`AGENTICWORKFLOW-*.md`](AGENTICWORKFLOW-ARCHITECTURE-AND-PHILOSOPHY.md) | 부모 프레임워크 방법론 (선택) |
+| 독자 유형 | 순서 |
+|----------|------|
+| **앱 사용자** | README → [`BADUK-USER-MANUAL.md`](BADUK-USER-MANUAL.md) |
+| **개발자** | README → [`BADUK-ARCHITECTURE-AND-PHILOSOPHY.md`](BADUK-ARCHITECTURE-AND-PHILOSOPHY.md) → [`BADUK-USER-MANUAL.md`](BADUK-USER-MANUAL.md) |
+| **워크플로우 학습자** | README → [`prompt/workflow.md`](prompt/workflow.md) → [`AGENTICWORKFLOW-ARCHITECTURE-AND-PHILOSOPHY.md`](AGENTICWORKFLOW-ARCHITECTURE-AND-PHILOSOPHY.md) |
+| **프레임워크 학습자** | [`AGENTICWORKFLOW-ARCHITECTURE-AND-PHILOSOPHY.md`](AGENTICWORKFLOW-ARCHITECTURE-AND-PHILOSOPHY.md) → [`AGENTICWORKFLOW-USER-MANUAL.md`](AGENTICWORKFLOW-USER-MANUAL.md) → `soul.md` |
 
 ## KataGo 업데이트
 

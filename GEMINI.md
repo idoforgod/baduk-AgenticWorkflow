@@ -16,6 +16,16 @@
 모든 자식 시스템은 부모의 전체 게놈(절대 기준, SOT, 4계층 검증, Safety Hook 등)을 구조적으로 내장한다.
 상세: `soul.md`, `AGENTS.md §1`.
 
+## 부모-자식 문서 분리
+
+| 접두사 | 범위 | 설명 |
+|--------|------|------|
+| `AGENTICWORKFLOW-*.md` | 부모 | 방법론, 프레임워크, DNA 유전 정의 |
+| `BADUK-*.md` | 자식 | 바둑 도메인 고유 아키텍처, 사용법 |
+| `CLAUDE.md`, `AGENTS.md`, `soul.md` | 공유 | 부모 DNA 상속, 자식이 활용 |
+
+바둑 앱 아키텍처: `BADUK-ARCHITECTURE-AND-PHILOSOPHY.md`. 앱 사용법: `BADUK-USER-MANUAL.md`.
+
 ## 절대 기준 (핵심 요약)
 
 ### 절대 기준 1: 최종 결과물의 품질

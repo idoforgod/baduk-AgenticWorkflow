@@ -36,7 +36,11 @@ AgenticWorkflow는 자식 agentic workflow system을 낳는 **부모 유기체**
 
 > 유전은 선택이 아니라 **구조**다. 자식은 부모의 DNA를 "참고"하는 것이 아니라 **내장**한다. 상세: `soul.md §0`.
 
+> **검증 사례**: Baduk Platform(KataGo AI 바둑 앱)은 이 유전 모델의 첫 실증 사례다. 25-step 워크플로우, 18개 에이전트, 4계층 검증이 모두 적용되어 pACS 88/100으로 완성. 상세: `AGENTICWORKFLOW-ARCHITECTURE-AND-PHILOSOPHY.md §11`.
+
 > **12→9 매핑**: soul.md §0의 12개 구성요소 중 위 9개가 `inherited_dna`로 자식에 구조적으로 내장된다. 나머지 3개 — 설계 원칙 P1-P4(절대 기준에 포함), Sisyphus/Error→Resolution(행동 패턴, 구조 아님), RLM 이론(이론적 기반, 구조 아님) — 는 부모 유기체의 내부 메커니즘으로서 자식에 암묵적으로 반영되되, 별도 `inherited_dna` 항목으로 분리하지 않는다. soul.md 자체는 메타 문서(유전의 정의서)이므로 유전 대상이 아니다.
+
+> **부모-자식 문서 분리**: 자식 시스템은 부모 문서(`AGENTICWORKFLOW-*.md` — 보편 방법론)와 자식 문서(`[CHILD]-*.md` — 도메인 고유 아키텍처)를 분리한다. 이 분리로 자식이 부모 프레임워크 지식 없이도 독립적으로 이해·운영 가능. 상세: `AGENTICWORKFLOW-USER-MANUAL.md §17`.
 
 ### 워크플로우 기본 구조
 

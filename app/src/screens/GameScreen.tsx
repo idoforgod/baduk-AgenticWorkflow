@@ -8,12 +8,15 @@
 import { ChevronLeft, Flag, RotateCcw, SkipForward } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { Board } from '../components/board/Board'
+import { WinRateGraph } from '../components/board/WinRateGraph'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { useGameStore } from '../game-engine/store'
 import { useAiOpponent } from '../hooks/useAiOpponent'
+import { useKataGoInit } from '../hooks/useKataGo'
 import { useKataGoAnalysis } from '../hooks/useKataGoAnalysis'
+import { useWinRateStore } from '../hooks/useWinRateStore'
 
 // ---------------------------------------------------------------------------
 // Player info panel
@@ -138,11 +141,24 @@ export function GameScreen() {
 
   const lastMoveIndex = moveHistory.length > 0 ? moveHistory[moveHistory.length - 1].index : null
 
+  // KataGo lifecycle: initialize on first game, shutdown on unmount
+  const { kataGoState: initState, kataGoError: initError } = useKataGoInit()
+
   // AI auto-play: when it's White's turn, AI plays after 400ms
   useAiOpponent()
 
-  // KataGo analysis: show top 5 candidate moves
-  const { candidates, kataGoState, error: kataGoError } = useKataGoAnalysis()
+  // KataGo analysis: show top 5 candidate moves (routes through validated pipeline)
+  // P0 fix: pass serviceReady so the analysis trigger reacts to init completion
+  const serviceReady = initState === 'ready'
+  const { candidates, isAnalyzing, error: analysisError } = useKataGoAnalysis(serviceReady)
+
+  // Merge lifecycle state with analysis state for UI display
+  const kataGoState = isAnalyzing ? 'analyzing' : initState
+  const kataGoError = initError ?? analysisError
+
+  // Win rate history from shared store (fed by both useKataGoAnalysis and useAiOpponent)
+  const winRateHistory = useWinRateStore((s) => s.history)
+  const currentWinRate = useWinRateStore((s) => s.currentWinRate)
 
   const isPlaying = status === 'playing'
   const isFinished = status === 'finished'
@@ -254,8 +270,43 @@ export function GameScreen() {
           )}
         </div>
 
-        {/* Right column: AI analysis + move list + info */}
+        {/* Right column: win rate + AI analysis + move list + info */}
         <div className="space-y-4">
+          {/* Win Rate Graph — live win rate per move */}
+          {winRateHistory.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span>Win Rate</span>
+                  {currentWinRate !== null && (
+                    <span
+                      className="text-xs font-bold px-2 py-0.5 rounded-full"
+                      style={{
+                        backgroundColor:
+                          currentWinRate >= 55
+                            ? 'rgba(34, 197, 94, 0.15)'
+                            : currentWinRate <= 45
+                              ? 'rgba(239, 68, 68, 0.15)'
+                              : 'rgba(59, 130, 246, 0.15)',
+                        color:
+                          currentWinRate >= 55
+                            ? 'var(--success)'
+                            : currentWinRate <= 45
+                              ? 'var(--danger)'
+                              : 'var(--accent)',
+                      }}
+                    >
+                      B {currentWinRate.toFixed(1)}%
+                    </span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <WinRateGraph data={winRateHistory} height={120} currentMove={moveHistory.length} />
+              </CardContent>
+            </Card>
+          )}
+
           {/* Policy Network — AI Candidate Moves */}
           <Card>
             <CardHeader className="pb-2">

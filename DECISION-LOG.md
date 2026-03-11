@@ -746,6 +746,43 @@
 
 ---
 
+## 8. Child System Documentation (자식 시스템 문서)
+
+### ADR-052: 부모-자식 문서 분리 패턴
+
+- **날짜**: 2026-03-11
+- **상태**: Accepted
+- **맥락**: Baduk Platform(KataGo AI 바둑 앱)이 AgenticWorkflow의 첫 자식 시스템으로 완성되었다. 부모 프레임워크 문서(`AGENTICWORKFLOW-*.md`)와 자식 도메인 문서(`BADUK-*.md`)가 동일 저장소에 공존하면서, 문서 역할 분리가 필요했다.
+- **결정**: 부모-자식 문서 분리 패턴을 확립한다:
+  - **부모 문서**(`AGENTICWORKFLOW-*.md`): 어떤 자식에도 적용되는 보편 방법론만 기술
+  - **자식 문서**(`[CHILD]-*.md`): 해당 도메인에서만 의미 있는 고유 아키텍처를 기술
+  - **공유 문서**(`CLAUDE.md`, `AGENTS.md`, `soul.md`): 부모의 헌법적 원칙, 자식이 읽기 전용으로 상속
+  - **README.md**: 자식 시스템의 프로젝트 개요 (부모 문서 없이도 이해 가능)
+- **근거**:
+  - 자식 시스템이 부모 프레임워크 지식 없이도 **독립적으로 이해·운영** 가능해야 한다
+  - 부모 문서에 자식 도메인 정보가 침투하면 다른 자식 시스템 생성 시 혼란 발생
+  - 절대 기준 2(SOT)의 문서 차원 적용: 부모 방법론은 부모 문서에, 자식 도메인은 자식 문서에 집중
+- **대안**:
+  - 단일 통합 문서 → 기각 (부모 방법론과 자식 도메인이 혼재, 독립 운영 불가)
+  - 자식 문서만 유지 → 기각 (부모 프레임워크의 방법론 맥락 유실)
+- **관련 파일**: `BADUK-ARCHITECTURE-AND-PHILOSOPHY.md`(신규), `BADUK-USER-MANUAL.md`(신규), `README.md`(갱신), `AGENTICWORKFLOW-ARCHITECTURE-AND-PHILOSOPHY.md`(§11 추가), `AGENTICWORKFLOW-USER-MANUAL.md`(§16-17 추가)
+
+### ADR-053: Baduk Platform 완성 — DNA 유전 모델 실증
+
+- **날짜**: 2026-03-11
+- **상태**: Accepted
+- **맥락**: soul.md §0과 AGENTS.md §1에서 정의한 "유전 설계 철학"이 이론 수준에 머물러 있었다. 실제 자식 시스템이 부모의 전체 게놈을 구조적으로 내장하고 동작하는지 검증이 필요했다.
+- **결정**: Baduk Platform을 AgenticWorkflow의 첫 검증 사례로 공식 기록한다:
+  - 25-step 워크플로우 (Research 5 → Planning 4 → Implementation 16) 완전 실행
+  - 18개 전문 에이전트가 부모 DNA(절대 기준, SOT, 4계층 검증, Safety Hook) 하에서 동작
+  - 146 TypeScript 파일 + 8 Rust 모듈 = 실제 동작하는 데스크톱 앱 생산
+  - 최종 pACS 88/100 (F:89, C:88, L:89)
+- **근거**: ADR-001("동작하는 시스템이 최종 산출물")과 ADR-038("DNA Inheritance")이 동시에 검증됨. 부모 게놈의 9개 구성요소가 바둑 도메인에서 모두 발현되었으며, 자식 고유의 분화(KataGo IPC, Tromp-Taylor 엔진, 3-tier 설명 엔진)도 확인됨.
+- **대안**: 해당 없음 — 사실의 기록
+- **관련 파일**: `AGENTICWORKFLOW-ARCHITECTURE-AND-PHILOSOPHY.md §11`, `prompt/workflow.md`, `outputs/` (26개 산출물), `.claude/state.yaml`
+
+---
+
 ## 부록: 커밋 히스토리 기반 타임라인
 
 | 날짜 | 커밋 | 결정 |
@@ -786,6 +823,8 @@
 | 2026-02-23 | (pending) | ADR-047: Abductive Diagnosis Layer — 품질 게이트 FAIL 시 구조화된 진단 |
 | 2026-02-23 | accepted | ADR-048: 전수조사 기반 시스템 일관성 강화 — 재시도 한도 10/15 + P1 doc-code sync + D-7 #5 |
 | 2026-03-01 | accepted | ADR-049: CLAUDE.md 경량화 — TOC 패턴 전환 (512→160줄, docs/protocols/ 분리) |
+| 2026-03-11 | accepted | ADR-052: 부모-자식 문서 분리 패턴 (BADUK-*.md + AGENTICWORKFLOW-*.md 역할 분리) |
+| 2026-03-11 | accepted | ADR-053: Baduk Platform 완성 — DNA 유전 모델 실증 (25-step, 18 agents, pACS 88) |
 
 ---
 

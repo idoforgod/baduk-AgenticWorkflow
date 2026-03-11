@@ -36,14 +36,26 @@ AgenticWorkflow는 **또 다른 agentic workflow system을 낳는 부모 유기�
 ## 프로젝트 구조
 
 ```
-AgenticWorkflow/
+baduk-AgenticWorkflow/
 ├── CLAUDE.md                        ← 이 파일 (Claude Code 지시서 — 경량 TOC)
 ├── AGENTS.md                        ← 모든 AI 에이전트 공통 지시서 (Hub — 방법론 SOT)
 ├── GEMINI.md                        ← Gemini CLI 전용 (Spoke)
 ├── soul.md                          ← DNA 유전 정의
 ├── DECISION-LOG.md                  ← 설계 결정 로그 (ADR)
-├── AGENTICWORKFLOW-USER-MANUAL.md
-├── AGENTICWORKFLOW-ARCHITECTURE-AND-PHILOSOPHY.md
+│
+├── 📋 부모 프레임워크 문서 (상속)
+│   ├── AGENTICWORKFLOW-ARCHITECTURE-AND-PHILOSOPHY.md   방법론 아키텍처
+│   └── AGENTICWORKFLOW-USER-MANUAL.md                   프레임워크 사용법
+│
+├── 📋 자식 시스템 문서 (바둑 도메인 고유)
+│   ├── BADUK-ARCHITECTURE-AND-PHILOSOPHY.md             바둑 앱 아키텍처
+│   ├── BADUK-USER-MANUAL.md                             앱 설치·실행 매뉴얼
+│   └── README.md                                        프로젝트 전체 개요
+│
+├── 🎮 app/                          ← Tauri 2.0 데스크톱 앱 (자식 산출물)
+│   ├── src/                          React 19 + TypeScript (146 파일)
+│   └── src-tauri/                    Rust 백엔드 (29 Tauri 커맨드)
+│
 ├── docs/protocols/                  ← 상세 프로토콜 (on-demand 참조)
 │   ├── autopilot-execution.md       (워크플로우 실행 체크리스트 + NEVER DO)
 │   ├── quality-gates.md             (L0-L2 4계층 + P1 검증 14항목 상세)
@@ -89,10 +101,13 @@ AgenticWorkflow/
 │   │   └── _test_block_destructive.py (block_destructive_commands 테스트 — 43개)
 │   ├── context-snapshots/           ← 런타임 (gitignored)
 │   └── skills/
+│       ├── start/                   (스마트 워크플로우 라우터)
 │       ├── workflow-generator/      (워크플로우 설계·생성)
+│       ├── workflow-executor/       (워크플로우 실행 오케스트레이터)
 │       └── doctoral-writing/        (박사급 학술 글쓰기)
 ├── translations/glossary.yaml       ← 번역 용어 사전
 ├── prompt/                          ← 프롬프트 자료
+│   └── workflow.md                  (바둑 플랫폼 워크플로우)
 └── coding-resource/                 ← 이론적 기반 자료
 ```
 
@@ -123,6 +138,7 @@ AgenticWorkflow/
 
 | 사용자 요청 패턴 | 스킬 | 진입점 |
 |----------------|------|--------|
+| "시작하자", "시작", "start", "워크플로우를 시작하자" | `start` | SKILL.md |
 | "워크플로우 만들어줘", "자동화 파이프라인 설계" | `workflow-generator` | SKILL.md |
 | "논문 스타일로 써줘", "학술적 글쓰기" | `doctoral-writing` | SKILL.md |
 

@@ -1,8 +1,25 @@
-import type { GameState } from '@core/interfaces'
-import { invoke } from '@tauri-apps/api/core'
+// =============================================================================
+// hooks/useAiOpponent.ts — AI opponent auto-play hook
+// =============================================================================
+// Automatically plays an AI move when it's White's turn.
+//
+// Strategy:
+//   1. KataGo available → use validated analysis to pick the best move
+//   2. Fallback → weighted random (for when KataGo is offline)
+//
+// Hallucination prevention:
+//   All KataGo analysis routes through KataGoService.analyze() which calls
+//   parseAnalysisResponse() → Zod-validated MoveInfo/RootInfo fields.
+//   No raw invoke() with TypeScript type assertions.
+// =============================================================================
+
+import type { AnalysisQuery, GameState, KataGoMove } from '@core/interfaces'
 import { useEffect } from 'react'
-import { indexToGTP, useGameStore } from '../game-engine/store'
+import { useGameStore } from '../game-engine/store'
+import { extractBestMove } from '../katago-bridge/response-parser'
 import { createRulesEngine } from '../rules-engine'
+import { getKataGoService } from './useKataGo'
+import { useWinRateStore } from './useWinRateStore'
 
 const rulesEngine = createRulesEngine()
 
@@ -45,51 +62,49 @@ export function useAiOpponent() {
 
 /**
  * Try to get a move from KataGo. Returns board index, -1 for pass, or null if unavailable.
+ *
+ * Routes through KataGoService.analyze() → parseAnalysisResponse() → Zod validation.
  */
 async function tryKataGoMove(s: ReturnType<typeof useGameStore.getState>): Promise<number | null> {
   try {
-    // Check KataGo status
-    const katagoStatus = await invoke<string>('katago_get_status')
-    if (katagoStatus !== 'Ready' && katagoStatus !== 'Analyzing') {
-      return null
-    }
+    const service = getKataGoService()
+    if (!service.isHealthy()) return null
 
     // Build moves in KataGo format
-    const moves: [string, string][] = s.moveHistory.map((m) => [m.player, m.coordinate ?? 'pass'])
+    const moves = s.moveHistory.map((m): KataGoMove => [m.player, m.coordinate ?? 'pass'])
 
-    const response = await invoke<{
-      moveInfos: Array<{
-        move: string
-        visits: number
-        winrate: number
-        scoreLead: number
-        order: number
-      }>
-    }>('katago_analyze', {
-      query: {
-        id: `ai-move-${Date.now()}`,
-        moves,
-        rules: 'tromp-taylor',
-        boardXSize: s.boardSize,
-        boardYSize: s.boardSize,
-        komi: s.config?.komi ?? 7.5,
-        maxVisits: 200, // Strong play
-        rootPolicyTemperature: null,
-        includeOwnership: false,
-        analyzeTurns: null,
-        priority: 10, // High priority for AI moves
-        initialStones: null,
-        overrideSettings: null,
-      },
-    })
-
-    if (response.moveInfos && response.moveInfos.length > 0) {
-      const bestMove = response.moveInfos[0]
-      if (bestMove.move === 'pass') return -1
-      return gtpToIndex(bestMove.move, s.boardSize)
+    const query: AnalysisQuery = {
+      id: `ai-move-${Date.now()}`,
+      moves,
+      rules: 'tromp-taylor',
+      boardXSize: s.boardSize,
+      boardYSize: s.boardSize,
+      komi: s.config?.komi ?? 7.5,
+      maxVisits: 200, // Strong play
+      priority: 10, // High priority for AI moves
     }
 
-    return null
+    // Route through KataGoService.analyze() → parseAnalysisResponse() → Zod validation
+    const result = await service.analyze(query)
+
+    if (!result.ok) return null
+
+    // Capture win rate from AI's analysis for the win rate graph.
+    // This position is analyzed when it's White's (AI's) turn,
+    // so rootInfo.currentPlayer is "W". We normalize to Black's perspective.
+    const { winrate: rootWinrate, currentPlayer: rootCurrentPlayer } = result.value.rootInfo
+    const blackWinRate =
+      rootCurrentPlayer === 'B'
+        ? Math.round(rootWinrate * 1000) / 10
+        : Math.round((1 - rootWinrate) * 1000) / 10
+    useWinRateStore.getState().addDataPoint(s.moveHistory.length, blackWinRate)
+
+    // Extract best move from validated response
+    const bestMove = extractBestMove(result.value)
+    if (bestMove === null) return null
+
+    if (bestMove.move === 'pass') return -1
+    return gtpToIndex(bestMove.move, s.boardSize)
   } catch {
     // KataGo unavailable — fall back to random
     return null

@@ -877,3 +877,85 @@ outputs:
 - [ ] SOT 파일 일관성 확인 (절대 기준 2)
 - [ ] 번역 파일(`*.ko.md`) 존재 + 용어 일관성 확인
 - [ ] Hook 게이트 정상 동작 확인
+
+---
+
+## 16. 검증 사례: Baduk Platform
+
+이 코드베이스로 실제 구현된 **첫 번째 자식 시스템**입니다. AgenticWorkflow의 모든 방법론이 실전에서 검증되었습니다.
+
+### 프로젝트 개요
+
+| 항목 | 내용 |
+|------|------|
+| **도메인** | KataGo AI 대국 + 실시간 정책망 분석 데스크톱 바둑 앱 |
+| **워크플로우** | 25-step (Research 5 → Planning 4 → Implementation 16) |
+| **에이전트** | 18개 전문 에이전트 |
+| **산출물** | Tauri 2.0 데스크톱 앱 — 146 TS 파일 + 8 Rust 모듈 |
+| **최종 pACS** | 88/100 |
+
+### 적용된 AgenticWorkflow 방법론
+
+| 방법론 | Baduk Platform에서의 적용 |
+|--------|------------------------|
+| 3단계 구조 | Research(기술검증·KataGo·도메인·설명엔진) → Planning(아키텍처·스키마·테스트) → Implementation(M1→M2→M3) |
+| SOT | `.claude/state.yaml` — 25단계 전체 추적. 26개 산출물 경로 기록 |
+| 4계층 검증 | L0 → L1 → L1.5(pACS 75~92점) → L2(@reviewer) — 모든 단계 적용 |
+| Agent Team | M1 Core(4명), M2 UI(4명), M3 Features(4명) — 병렬 에이전트 협업 |
+| Autopilot | 3개 Human Gate(Step 15, 22, 25) 외 22단계 자동 승인 |
+| English-First | 영어 산출물 + 한국어 번역 쌍 생성. glossary.yaml 자동 유지 |
+| Safety Hook | 부모의 40+ Hook 스크립트 그대로 상속 |
+
+### 자식 문서 체계
+
+Baduk Platform은 자체 도메인 문서를 갖습니다:
+
+| 문서 | 역할 |
+|------|------|
+| [`README.md`](README.md) | 프로젝트 전체 개요 |
+| [`BADUK-ARCHITECTURE-AND-PHILOSOPHY.md`](BADUK-ARCHITECTURE-AND-PHILOSOPHY.md) | 바둑 앱 설계 철학 + 아키텍처 |
+| [`BADUK-USER-MANUAL.md`](BADUK-USER-MANUAL.md) | 앱 설치·실행·업데이트 매뉴얼 |
+| [`prompt/workflow.md`](prompt/workflow.md) | 25-step 워크플로우 전체 정의 |
+
+---
+
+## 17. 부모-자식 문서 분리 패턴
+
+AgenticWorkflow로 자식 시스템을 만들면, 부모 문서와 자식 문서가 분리됩니다.
+
+### 분리 구조
+
+```
+자식-시스템/
+├── 📋 부모 DNA (상속)
+│   ├── AGENTICWORKFLOW-ARCHITECTURE-AND-PHILOSOPHY.md   ← 프레임워크 방법론
+│   ├── AGENTICWORKFLOW-USER-MANUAL.md                   ← 프레임워크 사용법
+│   ├── CLAUDE.md / AGENTS.md / GEMINI.md / soul.md     ← 공유 DNA
+│   └── DECISION-LOG.md                                  ← 설계 결정 이력
+│
+├── 📋 자식 고유 문서
+│   ├── [CHILD]-ARCHITECTURE-AND-PHILOSOPHY.md            ← 도메인 아키텍처
+│   ├── [CHILD]-USER-MANUAL.md                            ← 앱 사용법
+│   └── README.md                                         ← 프로젝트 개요
+│
+└── 🎮 구현 산출물
+    ├── app/ (또는 src/)                                   ← 실제 코드
+    ├── prompt/workflow.md                                 ← 워크플로우 정의
+    └── outputs/                                           ← 단계별 산출물
+```
+
+### 문서 읽기 순서
+
+| 독자 유형 | 읽기 순서 |
+|----------|----------|
+| **앱 사용자** | README → [CHILD]-USER-MANUAL |
+| **개발자** | README → [CHILD]-ARCHITECTURE → [CHILD]-USER-MANUAL |
+| **프레임워크 학습자** | README → AGENTICWORKFLOW-ARCHITECTURE → AGENTICWORKFLOW-USER-MANUAL |
+| **AI 에이전트** | CLAUDE.md (또는 GEMINI.md) → AGENTS.md → soul.md |
+
+### 분리 원칙
+
+- **부모 문서**(`AGENTICWORKFLOW-*.md`): 어떤 자식에도 적용되는 **보편 방법론**만 기술
+- **자식 문서**(`[CHILD]-*.md`): 해당 도메인에서만 의미 있는 **고유 아키텍처**를 기술
+- **공유 문서**(`CLAUDE.md`, `AGENTS.md`): 부모의 **헌법적 원칙**, 자식이 읽기 전용으로 상속
+- 자식 시스템은 부모 문서 없이도 **독립적으로 이해·운영** 가능

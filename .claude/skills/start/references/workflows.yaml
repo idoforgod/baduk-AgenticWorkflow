@@ -1,0 +1,17 @@
+# Workflow Registry — 등록된 워크플로우 목록
+# start 스킬이 이 파일을 읽어 사용 가능한 워크플로우를 파악합니다.
+#
+# 새 워크플로우 추가 시:
+#   1. prompt/{workflow-id}/workflow.md 생성
+#   2. 아래 목록에 항목 추가
+#   3. (선택) 전용 workflow-executor 변형이 필요하면 .claude/skills/ 에 추가
+
+workflows:
+  - id: "baduk-platform"
+    name: "바둑 게임 플레이"
+    description: "KataGo AI 대국 + 실시간 분석 데스크톱 앱"
+    workflow_path: "prompt/workflow.md"
+    entry_skill: "play"            # "시작" → 이 스킬로 직접 라우팅
+    status: "active"
+    default_mode: "interactive"
+    tags: ["baduk", "game", "katago", "desktop-app"]

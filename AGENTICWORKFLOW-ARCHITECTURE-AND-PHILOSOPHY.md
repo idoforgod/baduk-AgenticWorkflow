@@ -1542,6 +1542,88 @@ error_handling:
 
 ---
 
+## 11. 검증 사례: Baduk Platform (자식 시스템)
+
+### 11.1 유전 설계의 실증
+
+Baduk Platform은 AgenticWorkflow 부모 유기체로부터 태어난 **최초의 실제 자식 시스템**이다. §1.4의 유전 설계 철학이 이론이 아닌 **검증된 사실**임을 입증한다.
+
+**프로젝트 개요:**
+
+| 항목 | 내용 |
+|------|------|
+| **도메인** | KataGo AI 대국 + 실시간 정책망 분석 데스크톱 바둑 앱 |
+| **기술 스택** | React 19 + TypeScript (strict) + Tauri 2.0 (Rust) + KataGo v1.16.4 |
+| **워크플로우** | 25-step (Research 5 → Planning 4 → M1 Core 6 → M2 UI 5 → M3 Release 5) |
+| **에이전트** | 18개 전문 에이전트 (13 도메인 + 3 리뷰 + 1 번역 + 1 사실검증) |
+| **산출물** | 146 TypeScript 파일 (36,088 LOC) + 8 Rust 모듈 (29 Tauri 커맨드) |
+| **pACS** | 최종 88/100 (F:89, C:88, L:89) |
+
+### 11.2 게놈 발현 매핑
+
+§1.4의 이론적 "발현 차이 예시"가 Baduk Platform에서 어떻게 실현되었는가:
+
+| 부모 게놈 (DNA) | Baduk Platform에서의 발현 |
+|---------------|------------------------|
+| **절대 기준 1 (품질)** | KataGo 분석의 정확성 > 속도. 200 visits 기본, 설명 엔진 3-tier 맞춤 |
+| **절대 기준 2 (SOT)** | `.claude/state.yaml` — 25단계 전체 진행 상태 추적. Orchestrator만 쓰기 |
+| **절대 기준 3 (CCP)** | 강발현 — 146 TS 파일 간 의존성 관리. DI 패턴, 레이어 아키텍처 |
+| **3단계 구조** | Research(기술검증+KataGo+도메인+설명엔진) → Planning(아키텍처+스키마+테스트) → Implementation(M1→M2→M3) |
+| **4계층 검증** | L0(파일존재) → L1(Verification 기준) → L1.5(pACS 75~92점) → L2(@reviewer + @fact-checker) |
+| **P1 봉쇄** | Tromp-Taylor 규칙 엔진 — 130+ 테스트 검증. KataGo가 유일한 AI 분석 소스 |
+| **Safety Hook** | 부모의 40+ 검증 스크립트 그대로 상속. 위험 명령 차단, 시크릿 탐지, 보안 파일 감시 |
+| **Adversarial Review** | @reviewer가 매 단계 산출물 비판적 분석. @fact-checker가 연구 단계 사실 검증 |
+| **Context Preservation** | 25단계 실행 중 세션 경계 다수 발생 — 자동 저장/복원으로 맥락 유지 |
+
+### 11.3 자식 고유의 "분화" (Differentiation)
+
+부모 게놈을 그대로 갖되, Baduk 도메인에서만 발현되는 고유 요소:
+
+| 고유 분화 | 설명 | 부모에 없는 이유 |
+|-----------|------|----------------|
+| KataGo 사이드카 IPC | JSON-line stdin/stdout 프로세스 관리 | 바둑 도메인 고유 |
+| Tromp-Taylor 규칙 엔진 | 순수 TypeScript, 130+ 테스트 | 바둑 도메인 고유 |
+| 3-tier 설명 엔진 | 패턴 매칭 + 템플릿 자연어 생성 | 바둑 도메인 고유 |
+| SVG 바둑판 + PolicyOverlay | 정책망 시각화 | UI 도메인 고유 |
+| 30단계 난이도 시스템 | visits + temperature + playout 조절 | 게임 도메인 고유 |
+
+### 11.4 부모-자식 문서 분리 패턴
+
+Baduk Platform 구현을 통해 **부모-자식 문서 분리 패턴**이 확립되었다:
+
+| 접두사 | 범위 | 설명 | 예시 |
+|--------|------|------|------|
+| `AGENTICWORKFLOW-*.md` | 부모 | 방법론, 프레임워크, DNA 유전 정의 | 이 문서, USER-MANUAL |
+| `BADUK-*.md` | 자식 | 바둑 도메인 고유 아키텍처, 사용법 | BADUK-ARCHITECTURE, BADUK-USER-MANUAL |
+| `CLAUDE.md`, `AGENTS.md`, `soul.md` | 공유 | 부모 DNA 상속, 자식이 활용 | — |
+
+**분리 원칙:**
+- 부모 문서는 **어떤 자식에도 적용되는 보편 방법론**만 기술
+- 자식 문서는 **해당 도메인에서만 의미 있는 아키텍처**를 기술
+- 공유 문서는 **부모의 헌법적 원칙**으로, 자식이 읽기 전용으로 상속
+
+이 패턴은 자식 시스템이 부모 프레임워크 지식 없이도 **독립적으로 이해·운영**될 수 있게 한다.
+
+### 11.5 유전 모델 업데이트
+
+§1.4의 추상적 자식 예시를 Baduk Platform이라는 실제 검증 사례로 보강:
+
+```mermaid
+graph TD
+    A["AgenticWorkflow<br/>(부모 유기체)"] --> B["workflow-generator<br/>(생산 라인)"]
+    B --> F["✅ Baduk Platform<br/>DNA: 동일 / CCP+P1 강발현<br/>25-step, 18 agents, pACS 88"]
+    B --> C["자식 B: 연구 자동화<br/>DNA: 동일 / Research 강발현"]
+    B --> D["자식 C: 콘텐츠 생산<br/>DNA: 동일 / Implementation 강발현"]
+    B --> E["자식 D: 데이터 분석<br/>DNA: 동일 / P1 강발현"]
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style F fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+> **Baduk Platform의 의의**: "만능줄기세포"(AgenticWorkflow)가 "특정 기능 세포"(Baduk 바둑 앱)로 분화할 수 있음을 실증. 부모의 전체 게놈이 자식에 구조적으로 내장되어, 방법론(절대 기준, SOT, 4계층 검증)과 안전장치(Hook, Review)가 자동으로 적용되었다.
+
+---
+
 ## 부록: 용어 정리
 
 | 용어 | 정의 |
