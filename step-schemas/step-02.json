@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 2: KataGo Analysis Engine Research",
+  "type": "object",
+  "required": ["step", "output_files", "verification"],
+  "properties": {
+    "step": { "const": 2 },
+    "output_files": {
+      "type": "object",
+      "required": ["report", "report_ko"],
+      "properties": {
+        "report": { "type": "string", "pattern": "^outputs/step-02-.*\\.md$" },
+        "report_ko": { "type": "string", "pattern": "^outputs/step-02-.*\\.ko\\.md$" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["json_protocol_documented", "gpu_detection_specified", "process_lifecycle_designed", "model_bundling_defined", "visits_tiers_defined", "ipc_spec_included"],
+      "properties": {
+        "json_protocol_documented": { "type": "boolean" },
+        "gpu_detection_specified": { "type": "boolean" },
+        "process_lifecycle_designed": { "type": "boolean" },
+        "model_bundling_defined": { "type": "boolean" },
+        "visits_tiers_defined": { "type": "boolean" },
+        "ipc_spec_included": { "type": "boolean" }
+      }
+    },
+    "pacs": { "$ref": "#/$defs/pacs" },
+    "review": { "$ref": "#/$defs/review_result" }
+  },
+  "$defs": {
+    "pacs": {
+      "type": "object",
+      "required": ["F", "C", "L", "score"],
+      "properties": {
+        "F": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "C": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "L": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "review_result": {
+      "type": "object",
+      "required": ["reviewer", "verdict"],
+      "properties": {
+        "reviewer": { "type": "string" },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

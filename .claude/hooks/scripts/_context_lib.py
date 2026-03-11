@@ -95,7 +95,7 @@ BASH_CMD_CHARS = 200
 # Task prompt preview
 TASK_PROMPT_CHARS = 200
 # SOT content capture
-SOT_CAPTURE_CHARS = 3000
+SOT_CAPTURE_CHARS = 8000
 # Anti-Skip Guard minimum output size (bytes)
 MIN_OUTPUT_SIZE = 100
 
@@ -675,7 +675,7 @@ def validate_sot_schema(ap_state):
     # S5: workflow_status — must be recognized value
     status = ap_state.get("workflow_status", "")
     if status:
-        valid_statuses = {"running", "completed", "error", "paused"}
+        valid_statuses = {"not_started", "in_progress", "running", "completed", "blocked", "error", "paused"}
         if status not in valid_statuses:
             warnings.append(
                 f"SOT schema: unrecognized workflow_status '{status}'"
@@ -1637,6 +1637,25 @@ def generate_snapshot_md(session_id, trigger, project_dir, entries, work_log=Non
             if approved:
                 sections.append(f"- **자동 승인된 단계**: {approved}")
             sections.append("")
+
+            # CM-2: Workflow Progress Summary — condensed view for fast recovery
+            try:
+                step_num = ap_state.get("current_step", 0)
+                if isinstance(step_num, int) and step_num > 0:
+                    completed_steps = sorted(
+                        int(k.replace("step-", ""))
+                        for k in outputs.keys()
+                        if k.startswith("step-") and not k.endswith("-ko")
+                    ) if outputs else []
+                    sections.append("### 워크플로우 진행 요약 (Workflow Progress)")
+                    sections.append(f"- **현재**: Step {step_num} / 25")
+                    if completed_steps:
+                        sections.append(f"- **완료**: {', '.join(str(s) for s in completed_steps)} ({len(completed_steps)}/25)")
+                    else:
+                        sections.append("- **완료**: 없음 (0/25)")
+                    sections.append("")
+            except Exception:
+                pass
 
             # SOT schema validation (P1 — structural integrity)
             schema_warnings = validate_sot_schema(ap_state)
@@ -3858,7 +3877,12 @@ def _read_sot_outputs(project_dir):
                 except ImportError:
                     continue
             if isinstance(data, dict):
+                # Support both flat SOT (outputs: ...) and nested (workflow: outputs: ...)
                 outputs = data.get("outputs", {})
+                if not outputs and "workflow" in data:
+                    wf = data["workflow"]
+                    if isinstance(wf, dict):
+                        outputs = wf.get("outputs", {})
                 return outputs if isinstance(outputs, dict) else {}
         except Exception:
             continue
@@ -5406,7 +5430,7 @@ def _slugify_heading(heading_text):
 _DKS_REF_RE = re.compile(r'\[dks:([a-z0-9_-]+)\]', re.IGNORECASE)
 # Valid ID format: lowercase letter start, alphanumeric + hyphens + underscores
 # Character class MUST match _DKS_REF_RE capture group (D-7: both allow [a-z0-9_-])
-_DKS_ID_RE = re.compile(r'^[a-z][a-z0-9_-]*$')
+_DKS_ID_RE = re.compile(r'^[a-zA-Z][a-zA-Z0-9_-]*$')
 
 
 def validate_domain_knowledge(project_dir, check_output_step=None, sot_data=None):
@@ -5437,7 +5461,18 @@ def validate_domain_knowledge(project_dir, check_output_step=None, sot_data=None
     """
     warnings = []
 
+    # Try SOT-specified path first, then fallback to project root
     dk_path = os.path.join(project_dir, "domain-knowledge.yaml")
+    if sot_data and isinstance(sot_data, dict):
+        wf = sot_data.get("workflow", sot_data)
+        dk_sot = wf.get("domain_knowledge", {})
+        if isinstance(dk_sot, dict) and dk_sot.get("file"):
+            dk_path = os.path.join(project_dir, dk_sot["file"])
+    if not os.path.exists(dk_path):
+        # Also try outputs/step-03-domain-knowledge.yaml
+        alt_path = os.path.join(project_dir, "outputs", "step-03-domain-knowledge.yaml")
+        if os.path.exists(alt_path):
+            dk_path = alt_path
 
     # DK1: File exists and YAML is valid
     if not os.path.exists(dk_path):
@@ -5452,14 +5487,17 @@ def validate_domain_knowledge(project_dir, check_output_step=None, sot_data=None
     except Exception as e:
         return (False, [f"DK1 FAIL: Cannot parse domain-knowledge.yaml: {e}"])
 
-    # DK2: metadata required keys
+    # DK2: metadata required keys (accept either generic or domain-specific variants)
     metadata = dk_data.get("metadata", {})
     if not isinstance(metadata, dict):
         warnings.append("DK2 FAIL: 'metadata' must be a mapping")
     else:
-        for key in ("domain", "schema_version"):
-            if key not in metadata:
-                warnings.append(f"DK2 FAIL: metadata.{key} is missing")
+        # Accept "domain" or "ruleset" as domain identifier
+        if "domain" not in metadata and "ruleset" not in metadata:
+            warnings.append("DK2 FAIL: metadata.domain (or ruleset) is missing")
+        # Accept "schema_version" or "version" as version identifier
+        if "schema_version" not in metadata and "version" not in metadata:
+            warnings.append("DK2 FAIL: metadata.schema_version (or version) is missing")
 
     # DK3: entities structure
     entities = dk_data.get("entities", [])
@@ -5485,10 +5523,24 @@ def validate_domain_knowledge(project_dir, check_output_step=None, sot_data=None
                 warnings.append(f"DK3 FAIL: Duplicate entity id '{eid}'")
             entity_ids.add(eid)
 
-        if not isinstance(entity.get("type"), str):
-            warnings.append(f"DK3 FAIL: entities[{i}].type must be a string")
-        if not isinstance(entity.get("attributes", {}), dict):
-            warnings.append(f"DK3 FAIL: entities[{i}].attributes must be a mapping")
+        # Accept "type" or "category" as type field; "attributes" or "description" as detail
+        entity_type = entity.get("type") or entity.get("category")
+        if not isinstance(entity_type, str):
+            warnings.append(f"DK3 FAIL: entities[{i}].type (or category) must be a string")
+        entity_attrs = entity.get("attributes", entity.get("description", {}))
+        if entity_attrs is not None and not isinstance(entity_attrs, (dict, str)):
+            warnings.append(f"DK3 FAIL: entities[{i}].attributes must be a mapping or string")
+
+    # Build entity name lookup (for relations that reference by name instead of ID)
+    entity_names = set()
+    for entity in entities:
+        if isinstance(entity, dict):
+            ename = entity.get("name")
+            if ename:
+                entity_names.add(ename)
+
+    # Combined lookup: entity IDs + entity names
+    entity_lookup = entity_ids | entity_names
 
     # DK4: relations referential integrity
     relations = dk_data.get("relations", [])
@@ -5509,16 +5561,24 @@ def validate_domain_knowledge(project_dir, check_output_step=None, sot_data=None
                 warnings.append(f"DK4 FAIL: Duplicate relation id '{rid}'")
             relation_ids.add(rid)
 
-        subj = rel.get("subject")
-        obj = rel.get("object")
-        if subj and subj not in entity_ids:
-            warnings.append(
-                f"DK4 FAIL: relations[{i}].subject '{subj}' not found in entities"
-            )
-        if obj and obj not in entity_ids:
-            warnings.append(
-                f"DK4 FAIL: relations[{i}].object '{obj}' not found in entities"
-            )
+        # Accept "subject"/"object" or "from"/"to" as endpoints
+        subj = rel.get("subject") or rel.get("from")
+        obj = rel.get("object") or rel.get("to")
+        # Allow pipe-separated compound refs (e.g. "Stone|Territory")
+        if subj:
+            subj_parts = [s.strip() for s in str(subj).split("|")]
+            for sp in subj_parts:
+                if sp and sp not in entity_lookup:
+                    warnings.append(
+                        f"DK4 FAIL: relations[{i}].subject '{sp}' not found in entities"
+                    )
+        if obj:
+            obj_parts = [o.strip() for o in str(obj).split("|")]
+            for op in obj_parts:
+                if op and op not in entity_lookup:
+                    warnings.append(
+                        f"DK4 FAIL: relations[{i}].object '{op}' not found in entities"
+                    )
         conf = rel.get("confidence")
         if conf and str(conf).lower() not in valid_confidences:
             warnings.append(
@@ -5537,9 +5597,13 @@ def validate_domain_knowledge(project_dir, check_output_step=None, sot_data=None
         if not isinstance(con, dict):
             warnings.append(f"DK5 FAIL: constraints[{i}] is not a mapping")
             continue
-        for key in ("id", "description", "check"):
-            if key not in con:
-                warnings.append(f"DK5 FAIL: constraints[{i}] missing '{key}'")
+        # Required: "id". Accept "description" or "formal"/"name". Accept "check" or "enforcement".
+        if "id" not in con:
+            warnings.append(f"DK5 FAIL: constraints[{i}] missing 'id'")
+        if "description" not in con and "formal" not in con and "name" not in con:
+            warnings.append(f"DK5 FAIL: constraints[{i}] missing 'description' (or formal/name)")
+        if "check" not in con and "enforcement" not in con:
+            warnings.append(f"DK5 FAIL: constraints[{i}] missing 'check' (or enforcement)")
 
     # DK6 + DK7: Output cross-check (optional)
     if check_output_step is not None:

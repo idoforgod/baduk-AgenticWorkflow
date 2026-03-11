@@ -38,7 +38,7 @@ STALE_ARCHIVE_SECONDS = STALE_ARCHIVE_DAYS * 24 * 3600
 # work_log.jsonl size warning threshold (1MB)
 WORK_LOG_SIZE_WARN = 1_000_000
 
-# Hook scripts to re-validate (20 scripts)
+# Hook scripts to re-validate (29 scripts)
 # NOTE: setup_init.py and setup_maintenance.py are NOT in this list — they are
 # the validators themselves (self-validating).
 # D-7: Intentionally duplicated in setup_init.py — setup scripts are
@@ -53,19 +53,26 @@ REQUIRED_SCRIPTS = [
     "diagnose_context.py",
     "generate_context_summary.py",
     "predictive_debug_guard.py",
+    "query_step.py",
     "query_workflow.py",
     "restore_context.py",
     "save_context.py",
     "update_work_log.py",
+    "validate_counts.py",
     "validate_diagnosis.py",
     "validate_domain_knowledge.py",
+    "validate_fallback_enforcement.py",
     "validate_pacs.py",
     "validate_retry_budget.py",
     "validate_review.py",
+    "validate_spec_schema.py",
+    "validate_step_output.py",
+    "validate_test_results.py",
     "validate_traceability.py",
     "validate_translation.py",
     "validate_verification.py",
     "validate_workflow.py",
+    "verify_gate_passage.py",
 ]
 
 # Severity levels

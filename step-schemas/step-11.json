@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 11: Core Modules — Rules Engine + Data Layer",
+  "type": "object",
+  "required": ["step", "verification"],
+  "properties": {
+    "step": { "const": 11 },
+    "type": { "const": "team_step" },
+    "team": { "const": "m1-core" },
+    "verification": {
+      "type": "object",
+      "required": ["rules_test_count", "tromp_taylor_complete", "zobrist_hashing", "data_crud_tested", "game_reducer", "sgf_export", "interfaces_unmodified"],
+      "properties": {
+        "rules_test_count": { "type": "integer", "minimum": 130 },
+        "tromp_taylor_complete": { "type": "boolean" },
+        "zobrist_hashing": { "type": "boolean" },
+        "data_crud_tested": { "type": "boolean" },
+        "game_reducer": { "type": "boolean" },
+        "sgf_export": { "type": "boolean" },
+        "interfaces_unmodified": { "type": "boolean" }
+      }
+    },
+    "pacs": { "$ref": "#/$defs/pacs" },
+    "review": { "$ref": "#/$defs/review_result" }
+  },
+  "$defs": {
+    "pacs": {
+      "type": "object",
+      "required": ["F", "C", "L", "score"],
+      "properties": {
+        "F": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "C": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "L": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "review_result": {
+      "type": "object",
+      "required": ["reviewer", "verdict"],
+      "properties": {
+        "reviewer": { "type": "string" },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

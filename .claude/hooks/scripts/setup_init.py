@@ -34,7 +34,7 @@ from datetime import datetime
 # Constants
 # =============================================================================
 
-# Hook scripts that must exist and have valid Python syntax (20 scripts)
+# Hook scripts that must exist and have valid Python syntax (29 scripts)
 # NOTE: setup_init.py and setup_maintenance.py are NOT in this list — they are
 # the validators themselves (self-validating). P1-E detects them as "unregistered"
 # but this is by design, not an error.
@@ -50,19 +50,26 @@ REQUIRED_SCRIPTS = [
     "diagnose_context.py",
     "generate_context_summary.py",
     "predictive_debug_guard.py",
+    "query_step.py",
     "query_workflow.py",
     "restore_context.py",
     "save_context.py",
     "update_work_log.py",
+    "validate_counts.py",
     "validate_diagnosis.py",
     "validate_domain_knowledge.py",
+    "validate_fallback_enforcement.py",
     "validate_pacs.py",
     "validate_retry_budget.py",
     "validate_review.py",
+    "validate_spec_schema.py",
+    "validate_step_output.py",
+    "validate_test_results.py",
     "validate_traceability.py",
     "validate_translation.py",
     "validate_verification.py",
     "validate_workflow.py",
+    "verify_gate_passage.py",
 ]
 
 # Severity levels

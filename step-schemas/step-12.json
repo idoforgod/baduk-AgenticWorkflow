@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 12: KataGo Integration",
+  "type": "object",
+  "required": ["step", "verification"],
+  "properties": {
+    "step": { "const": 12 },
+    "verification": {
+      "type": "object",
+      "required": ["sidecar_spawn", "ipc_json_protocol", "gpu_detection", "watchdog_circuit_breaker", "worker_threads", "visits_tiers", "difficulty_30_levels", "model_load", "humansl_interface", "step2_spec_complete"],
+      "properties": {
+        "sidecar_spawn": { "type": "boolean" },
+        "ipc_json_protocol": { "type": "boolean" },
+        "gpu_detection": { "type": "boolean" },
+        "watchdog_circuit_breaker": { "type": "boolean" },
+        "worker_threads": { "type": "boolean" },
+        "visits_tiers": { "type": "boolean" },
+        "difficulty_30_levels": { "type": "boolean" },
+        "model_load": { "type": "boolean" },
+        "humansl_interface": { "type": "boolean" },
+        "step2_spec_complete": { "type": "boolean" }
+      }
+    },
+    "pacs": { "$ref": "#/$defs/pacs" },
+    "review": { "$ref": "#/$defs/review_result" }
+  },
+  "$defs": {
+    "pacs": {
+      "type": "object",
+      "required": ["F", "C", "L", "score"],
+      "properties": {
+        "F": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "C": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "L": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "review_result": {
+      "type": "object",
+      "required": ["reviewer", "verdict"],
+      "properties": {
+        "reviewer": { "type": "string" },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

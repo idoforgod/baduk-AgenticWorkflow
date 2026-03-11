@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 25: Launch Gate",
+  "type": "object",
+  "required": ["step", "verification"],
+  "properties": {
+    "step": { "const": 25 },
+    "type": { "const": "human_gate" },
+    "verification": {
+      "type": "object",
+      "required": ["all_features", "code_signing", "e2e_3os", "performance", "release_ready", "dau_retention", "decision"],
+      "properties": {
+        "all_features": { "type": "boolean" },
+        "code_signing": { "type": "boolean" },
+        "e2e_3os": { "type": "boolean" },
+        "performance": { "type": "boolean" },
+        "release_ready": { "type": "boolean" },
+        "dau_retention": { "type": "boolean" },
+        "decision": { "type": "string", "enum": ["LAUNCH", "DELAY"] }
+      }
+    }
+  }
+}

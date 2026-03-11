@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 10: Project Scaffolding",
+  "type": "object",
+  "required": ["step", "verification"],
+  "properties": {
+    "step": { "const": 10 },
+    "type": { "const": "team_step" },
+    "team": { "const": "m1-scaffold" },
+    "verification": {
+      "type": "object",
+      "required": ["npm_dev_works", "tauri_dev_works", "drizzle_migration", "biome_clean", "vitest_runs", "module_structure_matches"],
+      "properties": {
+        "npm_dev_works": { "type": "boolean" },
+        "tauri_dev_works": { "type": "boolean" },
+        "drizzle_migration": { "type": "boolean" },
+        "biome_clean": { "type": "boolean" },
+        "vitest_runs": { "type": "boolean" },
+        "module_structure_matches": { "type": "boolean" }
+      }
+    },
+    "pacs": { "$ref": "#/$defs/pacs" },
+    "review": { "$ref": "#/$defs/review_result" }
+  },
+  "$defs": {
+    "pacs": {
+      "type": "object",
+      "required": ["F", "C", "L", "score"],
+      "properties": {
+        "F": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "C": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "L": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "review_result": {
+      "type": "object",
+      "required": ["reviewer", "verdict"],
+      "properties": {
+        "reviewer": { "type": "string" },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

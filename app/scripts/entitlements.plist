@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  entitlements.plist — macOS Hardened Runtime Entitlements for Baduk Platform
+
+  These entitlements are required for macOS notarization with the hardened runtime.
+  The hardened runtime restricts what a signed app can do. Each entitlement here
+  is justified by a specific product requirement.
+
+  Reference:
+    https://developer.apple.com/documentation/security/hardened_runtime
+    https://developer.apple.com/documentation/bundleresources/entitlements
+-->
+<plist version="1.0">
+<dict>
+  <!--
+    Allow JIT compilation.
+    Required: No — Baduk does not use JIT (no JavaScript engine embedded).
+    Status: Omitted (principle of least privilege).
+  -->
+
+  <!--
+    Network client access.
+    Required: Yes — the auto-updater checks GitHub Releases for new versions,
+    and analytics/error reporting sends data to PostHog and Sentry.
+    Reference: tauri.conf.json CSP connect-src whitelist.
+  -->
+  <key>com.apple.security.network.client</key>
+  <true/>
+
+  <!--
+    Disable library validation.
+    Required: Yes — KataGo sidecar binary is a third-party binary not signed by
+    the same Developer ID. Without this entitlement, the hardened runtime would
+    reject it at load time.
+    Note: This is the minimum necessary exception; code injection protection
+    remains active.
+  -->
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
+
+  <!--
+    Allow unsigned executable memory.
+    Required: No — KataGo is a pre-compiled binary, not JIT code.
+    Status: Omitted.
+  -->
+
+  <!--
+    File access — User-selected files (read-only).
+    Required: Yes — users open SGF game files via the file picker.
+  -->
+  <key>com.apple.security.files.user-selected.read-only</key>
+  <true/>
+
+  <!--
+    File access — Downloads folder (read-only).
+    Required: No — the app does not need access to the Downloads folder directly;
+    users open files via the standard file picker which grants per-file access.
+    Status: Omitted.
+  -->
+
+  <!--
+    App Sandbox.
+    Required: Not applicable for Tauri apps distributed outside the Mac App Store.
+    Tauri apps use the hardened runtime WITHOUT the full App Sandbox to allow
+    the KataGo sidecar to run as a subprocess.
+    Status: Omitted intentionally.
+    Trade-off: Accepted — KataGo subprocess requires unrestricted file execution.
+    Mitigation: CSP, restricted fs plugin scope, Tauri capability system.
+  -->
+</dict>
+</plist>

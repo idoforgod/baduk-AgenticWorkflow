@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 19: Multi-platform Build & CI/CD",
+  "type": "object",
+  "required": ["step", "verification"],
+  "properties": {
+    "step": { "const": 19 },
+    "verification": {
+      "type": "object",
+      "required": ["github_actions", "tauri_bundling", "katago_sidecar_bundling", "auto_update", "release_workflow", "size_budget"],
+      "properties": {
+        "github_actions": { "type": "boolean" },
+        "tauri_bundling": { "type": "boolean" },
+        "katago_sidecar_bundling": { "type": "boolean" },
+        "auto_update": { "type": "boolean" },
+        "release_workflow": { "type": "boolean" },
+        "size_budget": { "type": "boolean" }
+      }
+    },
+    "pacs": { "$ref": "#/$defs/pacs" },
+    "review": { "$ref": "#/$defs/review_result" }
+  },
+  "$defs": {
+    "pacs": {
+      "type": "object",
+      "required": ["F", "C", "L", "score"],
+      "properties": {
+        "F": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "C": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "L": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "review_result": {
+      "type": "object",
+      "required": ["reviewer", "verdict"],
+      "properties": {
+        "reviewer": { "type": "string" },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

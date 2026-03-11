@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 22: Beta Release Gate",
+  "type": "object",
+  "required": ["step", "verification"],
+  "properties": {
+    "step": { "const": 22 },
+    "type": { "const": "human_gate" },
+    "verification": {
+      "type": "object",
+      "required": ["beta_3os", "quick_go_functional", "e2e_pass", "performance_ok", "security_clean", "beta_testers", "decision"],
+      "properties": {
+        "beta_3os": { "type": "boolean" },
+        "quick_go_functional": { "type": "boolean" },
+        "e2e_pass": { "type": "boolean" },
+        "performance_ok": { "type": "boolean" },
+        "security_clean": { "type": "boolean" },
+        "beta_testers": { "type": "boolean" },
+        "decision": { "type": "string", "enum": ["CONTINUE", "PIVOT"] }
+      }
+    }
+  }
+}

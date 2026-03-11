@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 18: Quick Go MVP",
+  "type": "object",
+  "required": ["step", "verification"],
+  "properties": {
+    "step": { "const": 18 },
+    "verification": {
+      "type": "object",
+      "required": ["quick_go_flow", "timer_byoyomi", "difficulty_mapping", "post_game_analysis", "integrated_components"],
+      "properties": {
+        "quick_go_flow": { "type": "boolean" },
+        "timer_byoyomi": { "type": "boolean" },
+        "difficulty_mapping": { "type": "boolean" },
+        "post_game_analysis": { "type": "boolean" },
+        "integrated_components": { "type": "boolean" }
+      }
+    },
+    "pacs": { "$ref": "#/$defs/pacs" },
+    "review": { "$ref": "#/$defs/review_result" }
+  },
+  "$defs": {
+    "pacs": {
+      "type": "object",
+      "required": ["F", "C", "L", "score"],
+      "properties": {
+        "F": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "C": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "L": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "review_result": {
+      "type": "object",
+      "required": ["reviewer", "verdict"],
+      "properties": {
+        "reviewer": { "type": "string" },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

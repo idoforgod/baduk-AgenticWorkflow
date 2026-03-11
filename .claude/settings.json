@@ -64,6 +64,28 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx biome check --write \"$(echo $TOOL_INPUT | jq -r '.file_path')\" 2>/dev/null || true",
+            "statusMessage": "Biome auto-formatting..."
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx vitest run --reporter=verbose 2>&1 | tail -20",
+            "timeout": 120,
+            "statusMessage": "Running test suite..."
+          }
+        ]
       }
     ],
     "PreCompact": [
@@ -116,6 +138,16 @@
           {
             "type": "command",
             "command": "if test -f \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/scripts/predictive_debug_guard.py; then python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/scripts/predictive_debug_guard.py; fi",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if test -f \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/scripts/verify_gate_passage.py; then python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/scripts/verify_gate_passage.py; fi",
             "timeout": 10
           }
         ]

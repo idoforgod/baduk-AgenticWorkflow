@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 13: Template Explanation Engine V1",
+  "type": "object",
+  "required": ["step", "verification"],
+  "properties": {
+    "step": { "const": 13 },
+    "verification": {
+      "type": "object",
+      "required": ["katago_to_explanation_pipeline", "tier_patterns_implemented", "high_risk_fallback", "coverage_percent", "llm_translator_enforced", "step4_patterns_implemented"],
+      "properties": {
+        "katago_to_explanation_pipeline": { "type": "boolean" },
+        "tier_patterns_implemented": { "type": "boolean" },
+        "high_risk_fallback": { "type": "boolean" },
+        "coverage_percent": { "type": "number", "minimum": 80 },
+        "llm_translator_enforced": { "type": "boolean" },
+        "step4_patterns_implemented": { "type": "boolean" }
+      }
+    },
+    "pacs": { "$ref": "#/$defs/pacs" },
+    "review": { "$ref": "#/$defs/review_result" }
+  },
+  "$defs": {
+    "pacs": {
+      "type": "object",
+      "required": ["F", "C", "L", "score"],
+      "properties": {
+        "F": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "C": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "L": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "review_result": {
+      "type": "object",
+      "required": ["reviewer", "verdict"],
+      "properties": {
+        "reviewer": { "type": "string" },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

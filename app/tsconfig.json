@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Strict mode (absolute requirement per Step 7) */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    /* Path aliases — must match vite.config.ts resolve.alias */
+    "paths": {
+      "@core/*": ["./src/core/*"],
+      "@board-ui/*": ["./src/board-ui/*"],
+      "@game-engine/*": ["./src/game-engine/*"],
+      "@rules-engine/*": ["./src/rules-engine/*"],
+      "@katago-bridge/*": ["./src/katago-bridge/*"],
+      "@explanation-engine/*": ["./src/explanation-engine/*"],
+      "@gamification/*": ["./src/gamification/*"],
+      "@analytics/*": ["./src/analytics/*"],
+      "@settings/*": ["./src/settings/*"],
+      "@i18n/*": ["./src/i18n/*"],
+      "@features/*": ["./src/features/*"]
+    }
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}

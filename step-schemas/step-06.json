@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 6: System Architecture Design",
+  "type": "object",
+  "required": ["step", "output_files", "verification"],
+  "properties": {
+    "step": { "const": 6 },
+    "output_files": {
+      "type": "object",
+      "required": ["architecture"],
+      "properties": {
+        "architecture": { "type": "string", "pattern": "^outputs/step-06-.*\\.md$" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["module_count", "ports_adapters_applied", "tauri_commands_defined", "dag_acyclic", "step1_constraints_reflected", "module_independence_verified"],
+      "properties": {
+        "module_count": { "type": "integer", "minimum": 8 },
+        "ports_adapters_applied": { "type": "boolean" },
+        "tauri_commands_defined": { "type": "boolean" },
+        "dag_acyclic": { "type": "boolean" },
+        "step1_constraints_reflected": { "type": "boolean" },
+        "module_independence_verified": { "type": "boolean" }
+      }
+    },
+    "pacs": { "$ref": "#/$defs/pacs" },
+    "review": { "$ref": "#/$defs/review_result" }
+  },
+  "$defs": {
+    "pacs": {
+      "type": "object",
+      "required": ["F", "C", "L", "score"],
+      "properties": {
+        "F": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "C": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "L": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "review_result": {
+      "type": "object",
+      "required": ["reviewer", "verdict"],
+      "properties": {
+        "reviewer": { "type": "string" },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

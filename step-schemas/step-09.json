@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 9: Planning Review & Architecture Approval",
+  "type": "object",
+  "required": ["step", "verification"],
+  "properties": {
+    "step": { "const": 9 },
+    "type": { "const": "human_gate" },
+    "verification": {
+      "type": "object",
+      "required": ["all_planning_pacs_reviewed", "decision"],
+      "properties": {
+        "all_planning_pacs_reviewed": { "type": "boolean" },
+        "decision": { "type": "string", "enum": ["APPROVE", "REVISE", "PIVOT"] }
+      }
+    }
+  }
+}

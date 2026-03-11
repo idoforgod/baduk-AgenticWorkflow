@@ -1,0 +1,9 @@
+node_modules
+dist
+.env
+.env.*
+coverage
+src-tauri/target
+
+# KataGo model (83MB) — download via: bash scripts/auto-update-katago.sh
+src-tauri/resources/models/*.bin.gz

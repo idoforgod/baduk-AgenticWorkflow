@@ -1,0 +1,1722 @@
+# =============================================================================
+# Baduk Domain Knowledge Specification (DKS)
+# =============================================================================
+# Version: 1.0.0
+# Author: @domain-expert (Step 3)
+# Date: 2026-03-11
+# Ruleset: Tromp-Taylor (Chinese/Area Scoring)
+# Consumers: Step 4, Step 6, Step 7, Step 11, Step 13
+# Companion: outputs/step-03-rules-spec.md
+# =============================================================================
+
+metadata:
+  version: "1.0.0"
+  author: "@domain-expert"
+  date: "2026-03-11"
+  ruleset: "Tromp-Taylor"
+  scoring: "Chinese (Area Scoring)"
+  superko_variant: "Positional Superko (PSK)"
+  suicide_default: false  # Chinese variant: suicide prohibited. Configurable via rules.allowSuicide.
+  board_sizes: [9, 13, 19]
+  default_board_size: 19
+  default_komi:
+    "9": 5.5
+    "13": 5.5
+    "19": 7.5
+
+# =============================================================================
+# Section 1: Tromp-Taylor Rules (10 Logical Rules)
+# =============================================================================
+
+tromp_taylor_rules:
+  - id: "TT-01"
+    title: "Board Definition"
+    text: "Go is played on a 19x19 square grid of points, by two players called Black and White."
+    formal: "Board G = (V, E) where V = {(r,c) | 0 <= r < N, 0 <= c < N}, E = {((r1,c1),(r2,c2)) | |r1-r2|+|c1-c2| = 1}"
+    impl_notes:
+      - "Board sizes: 9, 13, 19. Total intersections: N*N."
+      - "Adjacency is 4-connected (orthogonal only). No diagonals."
+      - "Pre-compute neighbor table: Int16Array[] of length N*N, 2-4 entries each."
+
+  - id: "TT-02"
+    title: "Point States"
+    text: "Each point on the grid may be colored black, white, or empty."
+    formal: "Board state S: V -> {Empty=0, Black=1, White=2}"
+    impl_notes:
+      - "Encode as Uint8Array of length N*N (row-major)."
+      - "Cell encoding: 0=Empty, 1=Black, 2=White."
+
+  - id: "TT-03"
+    title: "Reaching"
+    text: "A point P, not colored C, is said to reach C, if there is a path of (vertically or horizontally) adjacent points of P's color from P to a point of color C."
+    formal: "P reaches C iff color(P) != C AND there exists P0=P, P1, ..., Pk (k>=1) where (Pi,Pi+1) in E, color(Pi)=color(P) for i<k, and color(Pk)=C"
+    impl_notes:
+      - "Implement via BFS/DFS flood-fill from P through same-color stones."
+      - "A group 'reaches empty' iff it has >= 1 liberty."
+      - "Used in capture detection and territory scoring."
+
+  - id: "TT-04"
+    title: "Clearing"
+    text: "Clearing a color means removing (setting to empty) all points of that color that do not reach empty."
+    formal: "Clear(S, C) -> S' where S'(P) = Empty if color(P)=C and P does not reach Empty in S"
+    impl_notes:
+      - "Find all groups of color C. For each, check if group has >= 1 liberty."
+      - "Groups with 0 liberties: set all stones to Empty."
+      - "Single Clear may remove multiple disjoint groups."
+
+  - id: "TT-05"
+    title: "Alternation"
+    text: "Starting with an empty grid, the players alternate turns, starting with Black."
+    formal: "turn(k) = Black if k % 2 == 0, White if k % 2 == 1"
+    impl_notes:
+      - "Initial board: all Empty. First player: Black."
+      - "Track currentPlayer as 1 (Black) or 2 (White). Opponent: 3 - currentPlayer."
+
+  - id: "TT-06"
+    title: "Turn Options (Superko)"
+    text: "A turn is either a pass; or a move that doesn't repeat an earlier grid coloring."
+    formal: "Legal turn: Pass (board unchanged) or Move where resultHash not in positionHashes"
+    superko_note: "Positional Superko (PSK): no board state may repeat regardless of whose turn it is."
+    impl_notes:
+      - "Store all board hashes in Set<bigint> for O(1) lookup."
+      - "Under PSK, a move is illegal iff resultHash is already in the history set."
+      - "Simple ko optimization covers >99% of cases; full superko check is still required."
+
+  - id: "TT-07"
+    title: "Move Mechanics"
+    text: "A move consists of coloring an empty point one's own color; then clearing the opponent color, and then clearing one's own color."
+    formal: "Move(P, V): (1) S(V) = P, (2) S = Clear(S, opponent(P)), (3) S = Clear(S, P)"
+    impl_notes:
+      - "Order is critical: Place -> Capture Opponent -> Self-Capture."
+      - "Mutual exclusivity: at most one of {Capture, Self-Capture} has effect per move."
+      - "If opponent stones are captured, placed stone gains liberties; self-capture cannot apply."
+      - "If no opponent captures occur, placed stone may have 0 liberties -> suicide."
+      - "Update Zobrist hash incrementally for each sub-step."
+
+  - id: "TT-08"
+    title: "Game Termination"
+    text: "The game ends after two consecutive passes."
+    formal: "Game ends when action(k) = Pass AND action(k-1) = Pass"
+    impl_notes:
+      - "Track consecutivePasses counter. Increment on pass, reset on move."
+      - "When counter == 2, transition to scoring phase."
+      - "Resignation is a separate game-ending event (not in Tromp-Taylor but conventionally supported)."
+
+  - id: "TT-09"
+    title: "Scoring"
+    text: "A player's score is the number of points of her color, plus the number of empty points that reach only her color."
+    formal: "Score(P) = |{V | S(V)=P}| + |{V | S(V)=Empty AND V reaches P AND NOT V reaches opponent(P)}|"
+    scoring_type: "Area scoring (Chinese)"
+    impl_notes:
+      - "Count stones on board + territory (empty regions reaching only one color)."
+      - "Empty regions reaching both colors are dame (score 0 for both)."
+      - "BFS to identify connected empty regions and classify them."
+      - "Under Tromp-Taylor, dead stones not captured remain and count for their owner."
+
+  - id: "TT-10"
+    title: "Winner Determination"
+    text: "The player with the higher score at the end of the game is the winner. Equal scores result in a tie."
+    formal: "Winner = argmax(FinalScore(P)); FinalScore(White) = Score(White) + Komi"
+    impl_notes:
+      - "Apply komi to White's score."
+      - "With 0.5 komi (e.g., 7.5), ties are impossible."
+      - "Result format: 'B+5.5', 'W+0.5', '0' (tie), 'B+R' (resign), 'B+T' (time)."
+
+# =============================================================================
+# Section 2: Entity Catalog (85 entities)
+# =============================================================================
+
+entities:
+  # ---- Category 1: Board Geometry (E01-E08) ----
+  - id: "E01"
+    name: "Board"
+    category: "board_geometry"
+    description: "The NxN grid of intersections"
+    type_hint: "{ size: 9|13|19; grid: Uint8Array }"
+    constraints: ["grid.length === size * size"]
+    relations: ["R06"]
+
+  - id: "E02"
+    name: "Intersection"
+    category: "board_geometry"
+    description: "A single point on the board, identified by a 1D index"
+    type_hint: "number"
+    constraints: ["0 <= index < size * size"]
+    relations: ["R01", "R02", "R03", "R05", "R06", "R09"]
+
+  - id: "E03"
+    name: "Row"
+    category: "board_geometry"
+    description: "Horizontal line of intersections"
+    type_hint: "number"
+    constraints: ["0 <= row < size"]
+    relations: ["R02"]
+
+  - id: "E04"
+    name: "Column"
+    category: "board_geometry"
+    description: "Vertical line of intersections"
+    type_hint: "number"
+    constraints: ["0 <= col < size"]
+    relations: ["R03"]
+
+  - id: "E05"
+    name: "Coordinate"
+    category: "board_geometry"
+    description: "A (row, col) pair identifying an intersection"
+    type_hint: "{ row: number; col: number }"
+    constraints: ["0 <= row < size", "0 <= col < size"]
+    relations: ["R05"]
+
+  - id: "E06"
+    name: "AdjacencyEdge"
+    category: "board_geometry"
+    description: "An orthogonal connection between two intersections"
+    type_hint: "[number, number]"
+    constraints: ["|r1-r2|+|c1-c2| === 1"]
+    relations: ["R01"]
+
+  - id: "E07"
+    name: "NeighborList"
+    category: "board_geometry"
+    description: "Pre-computed list of valid neighbors for each intersection"
+    type_hint: "Int16Array[]"
+    constraints: ["2 <= length <= 4 per entry"]
+    relations: ["R01"]
+
+  - id: "E08"
+    name: "BoardRegion"
+    category: "board_geometry"
+    description: "A connected set of intersections sharing the same state"
+    type_hint: "Set<number>"
+    constraints: ["non-empty", "all same color or all empty"]
+    relations: ["R07", "R08"]
+
+  # ---- Category 2: Stone States (E09-E14) ----
+  - id: "E09"
+    name: "CellState"
+    category: "stone_states"
+    description: "The state of a single intersection"
+    type_hint: "0 | 1 | 2"
+    constraints: ["0=Empty, 1=Black, 2=White"]
+    relations: ["R09"]
+
+  - id: "E09b"
+    name: "BoardState"
+    category: "stone_states"
+    description: "Complete snapshot of all intersection states at a given turn"
+    type_hint: "Uint8Array"
+    constraints: ["length === size * size", "each cell in {0, 1, 2}"]
+    relations: ["R27", "R31", "R32", "R38"]
+
+  - id: "E10"
+    name: "Stone"
+    category: "stone_states"
+    description: "A placed piece on the board"
+    type_hint: "{ index: number; color: 1|2 }"
+    constraints: ["grid[index] !== 0"]
+    relations: ["R09", "R10", "R16"]
+
+  - id: "E11"
+    name: "BlackStone"
+    category: "stone_states"
+    description: "A stone of color Black"
+    type_hint: "1"
+    constraints: ["grid[index] === 1"]
+    relations: ["R10"]
+
+  - id: "E12"
+    name: "WhiteStone"
+    category: "stone_states"
+    description: "A stone of color White"
+    type_hint: "2"
+    constraints: ["grid[index] === 2"]
+    relations: ["R10"]
+
+  - id: "E13"
+    name: "EmptyPoint"
+    category: "stone_states"
+    description: "An unoccupied intersection"
+    type_hint: "0"
+    constraints: ["grid[index] === 0"]
+    relations: ["R21"]
+
+  - id: "E14"
+    name: "CapturedStone"
+    category: "stone_states"
+    description: "A stone removed from the board via capture"
+    type_hint: "{ index: number; color: 1|2; moveNumber: number }"
+    constraints: ["previously on board, now removed"]
+    relations: ["R15"]
+
+  # ---- Category 3: Groups (E15-E20) ----
+  - id: "E15"
+    name: "Group"
+    category: "groups"
+    description: "Maximal connected set of same-color stones"
+    type_hint: "{ color: 1|2; stones: Set<number>; liberties: Set<number> }"
+    constraints: ["non-empty", "all stones same color and connected"]
+    relations: ["R10", "R11", "R12", "R13", "R14", "R17"]
+
+  - id: "E16"
+    name: "GroupId"
+    category: "groups"
+    description: "Unique identifier for a group during a board state"
+    type_hint: "number"
+    constraints: ["unique per board state"]
+    relations: ["R10", "R20"]
+
+  - id: "E17"
+    name: "GroupSize"
+    category: "groups"
+    description: "Number of stones in a group"
+    type_hint: "number"
+    constraints: [">= 1"]
+    relations: ["R11"]
+
+  - id: "E18"
+    name: "LibertyCount"
+    category: "groups"
+    description: "Number of empty intersections adjacent to a group"
+    type_hint: "number"
+    constraints: [">= 0; 0 means captured"]
+    relations: ["R12"]
+
+  - id: "E19"
+    name: "Atari"
+    category: "groups"
+    description: "State where a group has exactly one liberty"
+    type_hint: "boolean"
+    constraints: ["libertyCount === 1"]
+    relations: ["R12"]
+
+  - id: "E20"
+    name: "GroupMembership"
+    category: "groups"
+    description: "Mapping from each stone index to its group"
+    type_hint: "Map<number, GroupId>"
+    constraints: ["each stone belongs to exactly one group"]
+    relations: ["R10"]
+
+  # ---- Category 4: Liberties (E21-E25) ----
+  - id: "E21"
+    name: "Liberty"
+    category: "liberties"
+    description: "An empty intersection adjacent to at least one stone of a group"
+    type_hint: "number"
+    constraints: ["grid[index] === 0"]
+    relations: ["R12"]
+
+  - id: "E22"
+    name: "SharedLiberty"
+    category: "liberties"
+    description: "An empty intersection adjacent to groups of both colors"
+    type_hint: "number"
+    constraints: ["adjacent to both a Black and a White group"]
+    relations: ["R17"]
+
+  - id: "E23"
+    name: "InternalLiberty"
+    category: "liberties"
+    description: "An empty point enclosed within a single group (potential eye)"
+    type_hint: "number"
+    constraints: ["all neighbors are same-color stones or off-board"]
+    relations: ["R12"]
+
+  - id: "E24"
+    name: "ExternalLiberty"
+    category: "liberties"
+    description: "An empty point on the boundary between a group and open board"
+    type_hint: "number"
+    constraints: ["at least one neighbor is empty or opponent"]
+    relations: ["R12"]
+
+  - id: "E25"
+    name: "LibertyDelta"
+    category: "liberties"
+    description: "Change in liberty count after a move"
+    type_hint: "number"
+    constraints: ["can be negative or positive"]
+    relations: []
+
+  # ---- Category 5: Territory and Scoring (E26-E35) ----
+  - id: "E26"
+    name: "Territory"
+    category: "territory_scoring"
+    description: "Set of empty points that reach only one color"
+    type_hint: "{ owner: 1|2; points: Set<number> }"
+    constraints: ["all points empty; reaches only one color"]
+    relations: ["R19", "R22"]
+
+  - id: "E27"
+    name: "Dame"
+    category: "territory_scoring"
+    description: "Neutral empty points that reach both colors"
+    type_hint: "Set<number>"
+    constraints: ["all points empty; reaches both Black and White"]
+    relations: ["R20", "R22"]
+
+  - id: "E28"
+    name: "EmptyRegion"
+    category: "territory_scoring"
+    description: "Connected component of empty intersections"
+    type_hint: "{ points: Set<number>; reachesBlack: boolean; reachesWhite: boolean }"
+    constraints: ["non-empty connected set of empty points"]
+    relations: ["R20", "R21", "R22"]
+
+  - id: "E29"
+    name: "Score"
+    category: "territory_scoring"
+    description: "A player's total points (stones + territory)"
+    type_hint: "number"
+    constraints: [">= 0"]
+    relations: ["R23"]
+
+  - id: "E30"
+    name: "Komi"
+    category: "territory_scoring"
+    description: "Compensation points for White"
+    type_hint: "number"
+    constraints: ["standard: 7.5 (19x19), 5.5 (9x9, 13x13)"]
+    relations: ["R24"]
+
+  - id: "E31"
+    name: "FinalScore"
+    category: "territory_scoring"
+    description: "Score including komi for White"
+    type_hint: "number"
+    constraints: [">= 0"]
+    relations: ["R24"]
+
+  - id: "E32"
+    name: "ScoreResult"
+    category: "territory_scoring"
+    description: "Complete scoring breakdown"
+    type_hint: >
+      { blackStones: number; whiteStones: number; blackTerritory: number;
+        whiteTerritory: number; dame: number; komi: number;
+        blackScore: number; whiteScore: number; result: string }
+    constraints: ["all fields non-negative"]
+    relations: ["R23", "R24"]
+
+  - id: "E33"
+    name: "CaptureCount"
+    category: "territory_scoring"
+    description: "Total stones captured by a player during the game"
+    type_hint: "number"
+    constraints: [">= 0; not used in area scoring calculation"]
+    relations: []
+
+  - id: "E34"
+    name: "ScoringMethod"
+    category: "territory_scoring"
+    description: "The scoring system used"
+    type_hint: "'chinese'"
+    constraints: ["Phase 1: Chinese only"]
+    relations: []
+
+  - id: "E35"
+    name: "Margin"
+    category: "territory_scoring"
+    description: "Point difference between winner and loser"
+    type_hint: "number"
+    constraints: ["> 0 for decisive; 0 for tie"]
+    relations: []
+
+  # ---- Category 6: Game Flow (E36-E46) ----
+  - id: "E36"
+    name: "Move"
+    category: "game_flow"
+    description: "A turn where a stone is placed"
+    type_hint: "{ type: 'move'; player: 1|2; index: number }"
+    constraints: ["target must be empty; must not violate superko"]
+    relations: ["R25", "R26", "R27", "R28"]
+
+  - id: "E37"
+    name: "Pass"
+    category: "game_flow"
+    description: "A turn where no stone is placed"
+    type_hint: "{ type: 'pass'; player: 1|2 }"
+    constraints: ["board state unchanged"]
+    relations: ["R25", "R26", "R30"]
+
+  - id: "E38"
+    name: "Resignation"
+    category: "game_flow"
+    description: "A voluntary game-ending action"
+    type_hint: "{ type: 'resign'; player: 1|2 }"
+    constraints: ["opponent wins"]
+    relations: ["R30"]
+
+  - id: "E39"
+    name: "MoveRecord"
+    category: "game_flow"
+    description: "A recorded action with metadata"
+    type_hint: "{ ...Move|Pass|Resign; captured: number[]; hash: bigint }"
+    constraints: ["immutable once recorded"]
+    relations: ["R25", "R26", "R27"]
+
+  - id: "E40"
+    name: "MoveHistory"
+    category: "game_flow"
+    description: "Ordered sequence of all actions in a game"
+    type_hint: "MoveRecord[]"
+    constraints: ["append-only"]
+    relations: ["R25"]
+
+  - id: "E41"
+    name: "MoveNumber"
+    category: "game_flow"
+    description: "The index of the current turn (0-based)"
+    type_hint: "number"
+    constraints: [">= 0"]
+    relations: ["R25"]
+
+  - id: "E42"
+    name: "CurrentPlayer"
+    category: "game_flow"
+    description: "The player whose turn it is"
+    type_hint: "1 | 2"
+    constraints: ["moveNumber % 2 === 0 ? 1 : 2"]
+    relations: ["R26"]
+
+  - id: "E43"
+    name: "ConsecutivePasses"
+    category: "game_flow"
+    description: "Counter of consecutive pass actions"
+    type_hint: "0 | 1 | 2"
+    constraints: ["reset to 0 on any move; game ends at 2"]
+    relations: ["R30"]
+
+  - id: "E44"
+    name: "GamePhase"
+    category: "game_flow"
+    description: "Current phase of the game"
+    type_hint: "'playing' | 'scoring' | 'finished'"
+    constraints: ["linear progression"]
+    relations: []
+
+  - id: "E45"
+    name: "GameResult"
+    category: "game_flow"
+    description: "Outcome of the game"
+    type_hint: "{ winner: 1|2|null; method: 'score'|'resign'|'time'|'tie'; margin?: number }"
+    constraints: ["non-null after game ends"]
+    relations: ["R30"]
+
+  - id: "E46"
+    name: "GameRecord"
+    category: "game_flow"
+    description: "Complete record of a finished game"
+    type_hint: "{ moves: MoveRecord[]; result: GameResult; board: BoardState; metadata: GameMetadata }"
+    constraints: ["immutable"]
+    relations: []
+
+  # ---- Category 7: Player (E47-E50) ----
+  - id: "E47"
+    name: "Player"
+    category: "player"
+    description: "A participant in a game (human or AI)"
+    type_hint: "{ id: string; type: 'human'|'ai'; color: 1|2 }"
+    constraints: ["each game has exactly 2 players"]
+    relations: ["R26"]
+
+  - id: "E48"
+    name: "PlayerColor"
+    category: "player"
+    description: "The color assigned to a player"
+    type_hint: "1 | 2"
+    constraints: ["BLACK=1, WHITE=2"]
+    relations: []
+
+  - id: "E49"
+    name: "OpponentColor"
+    category: "player"
+    description: "The opposite of a player's color"
+    type_hint: "1 | 2"
+    constraints: ["3 - playerColor"]
+    relations: []
+
+  - id: "E50"
+    name: "AILevel"
+    category: "player"
+    description: "KataGo difficulty level"
+    type_hint: "number"
+    constraints: ["1 <= level <= 30"]
+    relations: []
+
+  # ---- Category 8: Time Control (E51-E55) ----
+  - id: "E51"
+    name: "TimeControl"
+    category: "time_control"
+    description: "Time control settings for a game"
+    type_hint: "{ mainTime: number; byoyomi: number; periods: number }"
+    constraints: ["all values > 0"]
+    relations: []
+
+  - id: "E52"
+    name: "MainTime"
+    category: "time_control"
+    description: "Total time allocated per player in seconds"
+    type_hint: "number"
+    constraints: ["> 0"]
+    relations: []
+
+  - id: "E53"
+    name: "Byoyomi"
+    category: "time_control"
+    description: "Overtime period duration in seconds"
+    type_hint: "number"
+    constraints: ["> 0"]
+    relations: []
+
+  - id: "E54"
+    name: "ByoyomiPeriods"
+    category: "time_control"
+    description: "Number of overtime periods"
+    type_hint: "number"
+    constraints: [">= 1"]
+    relations: []
+
+  - id: "E55"
+    name: "RemainingTime"
+    category: "time_control"
+    description: "Time left for a player"
+    type_hint: "{ mainTime: number; byoyomiPeriods: number }"
+    constraints: ["mainTime >= 0; byoyomiPeriods >= 0"]
+    relations: []
+
+  # ---- Category 9: Analysis (E56-E62) ----
+  - id: "E56"
+    name: "WinRate"
+    category: "analysis"
+    description: "Estimated probability of winning for a given player"
+    type_hint: "number"
+    constraints: ["0.0 <= winRate <= 1.0"]
+    relations: ["R34"]
+
+  - id: "E57"
+    name: "ScoreLead"
+    category: "analysis"
+    description: "Estimated point lead for a player"
+    type_hint: "number"
+    constraints: ["can be negative (losing)"]
+    relations: []
+
+  - id: "E58"
+    name: "BestMove"
+    category: "analysis"
+    description: "The engine's top recommended move"
+    type_hint: "{ index: number; winRate: number; visits: number }"
+    constraints: ["valid intersection index"]
+    relations: ["R33", "R36"]
+
+  - id: "E59"
+    name: "MoveVariation"
+    category: "analysis"
+    description: "A sequence of recommended moves"
+    type_hint: "number[]"
+    constraints: ["array of intersection indices"]
+    relations: ["R36"]
+
+  - id: "E60"
+    name: "Blunder"
+    category: "analysis"
+    description: "A move that significantly reduces win rate"
+    type_hint: "{ moveNumber: number; winRateDrop: number }"
+    constraints: ["winRateDrop > threshold (e.g., 0.05)"]
+    relations: ["R35"]
+
+  - id: "E61"
+    name: "AnalysisResult"
+    category: "analysis"
+    description: "KataGo analysis output for a position"
+    type_hint: "{ moveInfos: MoveInfo[]; rootInfo: RootInfo }"
+    constraints: ["from KataGo Analysis Engine"]
+    relations: ["R32", "R33", "R34"]
+
+  - id: "E62"
+    name: "Visits"
+    category: "analysis"
+    description: "Number of MCTS playouts for a position"
+    type_hint: "number"
+    constraints: ["> 0"]
+    relations: []
+
+  # ---- Category 10: Rank and Rating (E63-E66) ----
+  - id: "E63"
+    name: "Rank"
+    category: "rank_rating"
+    description: "Traditional Go rank (kyu/dan)"
+    type_hint: "string"
+    constraints: ["format: '30k' to '1k', '1d' to '9d', '1p' to '9p'"]
+    relations: []
+
+  - id: "E64"
+    name: "RankNumeric"
+    category: "rank_rating"
+    description: "Numeric representation of rank for comparison"
+    type_hint: "number"
+    constraints: ["30k=1, 1k=30, 1d=31, 9d=39, 1p=40, 9p=48"]
+    relations: []
+
+  - id: "E65"
+    name: "Rating"
+    category: "rank_rating"
+    description: "Elo-like numerical rating"
+    type_hint: "number"
+    constraints: [">= 0"]
+    relations: []
+
+  - id: "E66"
+    name: "RatingDelta"
+    category: "rank_rating"
+    description: "Change in rating after a game"
+    type_hint: "number"
+    constraints: ["can be positive or negative"]
+    relations: []
+
+  # ---- Category 11: Ko and Superko (E67-E72) ----
+  - id: "E67"
+    name: "KoPoint"
+    category: "ko_superko"
+    description: "Intersection where immediate recapture is forbidden (simple ko)"
+    type_hint: "number | null"
+    constraints: ["null when no ko is active"]
+    relations: ["R29", "R37"]
+
+  - id: "E68"
+    name: "PositionHash"
+    category: "ko_superko"
+    description: "Zobrist hash of a board state"
+    type_hint: "bigint"
+    constraints: ["64-bit value"]
+    relations: ["R31", "R38"]
+
+  - id: "E69"
+    name: "PositionHashHistory"
+    category: "ko_superko"
+    description: "Set of all previously seen board hashes"
+    type_hint: "Set<bigint>"
+    constraints: ["append-only; grows by 1 per move"]
+    relations: ["R39", "R40"]
+
+  - id: "E70"
+    name: "ZobristTable"
+    category: "ko_superko"
+    description: "Random values for hash computation"
+    type_hint: "bigint[][]"
+    constraints: ["[2][N*N] array of 64-bit values; deterministic via fixed PRNG seed"]
+    relations: []
+
+  - id: "E71"
+    name: "SuperkoViolation"
+    category: "ko_superko"
+    description: "A move that would recreate a previous board state"
+    type_hint: "boolean"
+    constraints: ["detected by hash lookup in positionHashes"]
+    relations: ["R40"]
+
+  - id: "E72"
+    name: "KoThreat"
+    category: "ko_superko"
+    description: "A move played elsewhere to force opponent response before returning to ko"
+    type_hint: "number"
+    constraints: ["valid move index"]
+    relations: []
+
+  # ---- Category 12: SGF and Data (E73-E78) ----
+  - id: "E73"
+    name: "SGFString"
+    category: "sgf_data"
+    description: "Raw SGF file content"
+    type_hint: "string"
+    constraints: ["must conform to SGF specification"]
+    relations: []
+
+  - id: "E74"
+    name: "SGFNode"
+    category: "sgf_data"
+    description: "A parsed node from an SGF game tree"
+    type_hint: "{ id: number; data: Record<string, string[]>; parentId: number|null; children: number[] }"
+    constraints: ["compatible with @sabaki/sgf"]
+    relations: []
+
+  - id: "E75"
+    name: "SGFGameTree"
+    category: "sgf_data"
+    description: "A parsed game tree from an SGF file"
+    type_hint: "SGFNode[]"
+    constraints: ["root node has parentId === null"]
+    relations: []
+
+  - id: "E76"
+    name: "SGFCoordinate"
+    category: "sgf_data"
+    description: "SGF coordinate string (e.g., 'pd' for column p, row d)"
+    type_hint: "string"
+    constraints: ["two lowercase letters; 'aa' = (0,0)"]
+    relations: []
+
+  - id: "E77"
+    name: "SGFProperty"
+    category: "sgf_data"
+    description: "A key-value pair in an SGF node"
+    type_hint: "{ key: string; values: string[] }"
+    constraints: ["standard SGF properties: B, W, AB, AW, SZ, KM, etc."]
+    relations: []
+
+  - id: "E78"
+    name: "GameMetadata"
+    category: "sgf_data"
+    description: "Metadata about a game"
+    type_hint: >
+      { blackPlayer: string; whitePlayer: string; date: string;
+        result: string; boardSize: number; komi: number; rules: string }
+    constraints: ["from SGF headers"]
+    relations: []
+
+  # ---- Category 13: Life and Death (E79-E85) ----
+  - id: "E79"
+    name: "Alive"
+    category: "life_death"
+    description: "A group that cannot be captured"
+    type_hint: "boolean"
+    constraints: ["sufficient: 2+ true eyes, or seki"]
+    relations: []
+
+  - id: "E80"
+    name: "Dead"
+    category: "life_death"
+    description: "A group that will be captured with correct opponent play"
+    type_hint: "boolean"
+    constraints: ["no two true eyes, no seki, insufficient ko threats"]
+    relations: []
+
+  - id: "E81"
+    name: "Unsettled"
+    category: "life_death"
+    description: "A group whose status depends on who plays first"
+    type_hint: "boolean"
+    constraints: ["context-dependent"]
+    relations: []
+
+  - id: "E82"
+    name: "TrueEye"
+    category: "life_death"
+    description: "An empty intersection that is a genuine eye for a group"
+    type_hint: "boolean"
+    constraints: >
+      All orthogonal neighbors same color; diagonal rule: corner=0 opponent max,
+      edge=0-1 opponent max, interior=0-1 opponent max
+    relations: []
+
+  - id: "E83"
+    name: "FalseEye"
+    category: "life_death"
+    description: "An empty intersection resembling an eye but compromised"
+    type_hint: "boolean"
+    constraints: ["diagonal condition fails"]
+    relations: []
+
+  - id: "E84"
+    name: "EyeSpace"
+    category: "life_death"
+    description: "Set of connected empty points enclosed by a group"
+    type_hint: "Set<number>"
+    constraints: ["may contain true eyes, false eyes, or mixed"]
+    relations: []
+
+  - id: "E85"
+    name: "SekiGroup"
+    category: "life_death"
+    description: "A group alive by mutual life (seki)"
+    type_hint: "boolean"
+    constraints: ["cannot capture opponent without self-atari"]
+    relations: []
+
+# =============================================================================
+# Section 3: Relation Catalog (40 relations)
+# =============================================================================
+
+relations:
+  # ---- Board Geometry Relations ----
+  - id: "R01"
+    name: "AdjacentTo"
+    from: "Intersection"
+    to: "Intersection"
+    cardinality: "N:M (2-4 per node)"
+    direction: "bidirectional"
+    constraint: "|r1-r2|+|c1-c2| === 1"
+
+  - id: "R02"
+    name: "InRow"
+    from: "Intersection"
+    to: "Row"
+    cardinality: "N:1"
+    direction: "unidirectional"
+    constraint: "row = Math.floor(index / size)"
+
+  - id: "R03"
+    name: "InColumn"
+    from: "Intersection"
+    to: "Column"
+    cardinality: "N:1"
+    direction: "unidirectional"
+    constraint: "col = index % size"
+
+  - id: "R04"
+    name: "DiagonalTo"
+    from: "Intersection"
+    to: "Intersection"
+    cardinality: "N:M (1-4)"
+    direction: "bidirectional"
+    constraint: "|r1-r2| === 1 AND |c1-c2| === 1"
+
+  - id: "R05"
+    name: "HasIndex"
+    from: "Coordinate"
+    to: "Intersection"
+    cardinality: "1:1"
+    direction: "unidirectional"
+    constraint: "index = row * size + col"
+
+  - id: "R06"
+    name: "ContainsIntersection"
+    from: "Board"
+    to: "Intersection"
+    cardinality: "1:N"
+    direction: "unidirectional"
+    constraint: "N = size * size"
+
+  - id: "R07"
+    name: "BelongsToRegion"
+    from: "Intersection"
+    to: "BoardRegion"
+    cardinality: "N:1"
+    direction: "unidirectional"
+    constraint: "partitions all intersections"
+
+  - id: "R08"
+    name: "AdjacentRegion"
+    from: "BoardRegion"
+    to: "BoardRegion"
+    cardinality: "N:M"
+    direction: "bidirectional"
+    constraint: "regions share at least one adjacency edge"
+
+  # ---- Stone and Group Relations ----
+  - id: "R09"
+    name: "OccupiedBy"
+    from: "Intersection"
+    to: "Stone"
+    cardinality: "1:0..1"
+    direction: "unidirectional"
+    constraint: "empty intersections have no stone"
+
+  - id: "R10"
+    name: "BelongsToGroup"
+    from: "Stone"
+    to: "Group"
+    cardinality: "N:1"
+    direction: "unidirectional"
+    constraint: "every stone belongs to exactly one group"
+
+  - id: "R11"
+    name: "ContainsStone"
+    from: "Group"
+    to: "Stone"
+    cardinality: "1:N"
+    direction: "unidirectional"
+    constraint: "N >= 1; group is non-empty"
+
+  - id: "R12"
+    name: "HasLiberty"
+    from: "Group"
+    to: "Liberty"
+    cardinality: "1:N"
+    direction: "unidirectional"
+    constraint: "N >= 0; N=0 means captured"
+
+  - id: "R13"
+    name: "AdjacentToGroup"
+    from: "Group"
+    to: "Group"
+    cardinality: "N:M"
+    direction: "bidirectional"
+    constraint: "any stone pair across groups is adjacent"
+
+  - id: "R14"
+    name: "OpposesGroup"
+    from: "Group"
+    to: "Group"
+    cardinality: "N:M"
+    direction: "bidirectional"
+    constraint: "adjacent groups of different colors"
+
+  - id: "R15"
+    name: "CapturedBy"
+    from: "Group"
+    to: "Move"
+    cardinality: "1:1"
+    direction: "unidirectional"
+    constraint: "the move that reduced liberties to zero"
+
+  - id: "R16"
+    name: "PlacedBy"
+    from: "Stone"
+    to: "Move"
+    cardinality: "1:1"
+    direction: "unidirectional"
+    constraint: "the move that created this stone"
+
+  - id: "R17"
+    name: "SharesLibertyWith"
+    from: "Group"
+    to: "Group"
+    cardinality: "N:M"
+    direction: "bidirectional"
+    constraint: "two groups share at least one liberty"
+
+  - id: "R18"
+    name: "MergesWith"
+    from: "Group"
+    to: "Group"
+    cardinality: "N:M"
+    direction: "unidirectional"
+    constraint: "placing a stone connects groups into one"
+
+  # ---- Territory and Scoring Relations ----
+  - id: "R19"
+    name: "OwnsTerritory"
+    from: "Player"
+    to: "Territory"
+    cardinality: "1:N"
+    direction: "unidirectional"
+    constraint: "empty region reaches only this player's color"
+
+  - id: "R20"
+    name: "ReachesColor"
+    from: "EmptyRegion"
+    to: "PlayerColor"
+    cardinality: "N:M (1 or 2)"
+    direction: "unidirectional"
+    constraint: "BFS from region touches this color"
+
+  - id: "R21"
+    name: "ContainsPoint"
+    from: "EmptyRegion"
+    to: "Intersection"
+    cardinality: "1:N"
+    direction: "unidirectional"
+    constraint: "connected empty points"
+
+  - id: "R22"
+    name: "ClassifiedAs"
+    from: "EmptyRegion"
+    to: "Territory|Dame"
+    cardinality: "1:1"
+    direction: "unidirectional"
+    constraint: "reaches one color = territory; both = dame"
+
+  - id: "R23"
+    name: "ContributesToScore"
+    from: "Stone|Territory"
+    to: "Score"
+    cardinality: "N:1"
+    direction: "unidirectional"
+    constraint: "each stone/territory adds 1 to owner score"
+
+  - id: "R24"
+    name: "AdjustedByKomi"
+    from: "Score"
+    to: "FinalScore"
+    cardinality: "1:1"
+    direction: "unidirectional"
+    constraint: "White FinalScore = Score + Komi"
+
+  # ---- Game Flow Relations ----
+  - id: "R25"
+    name: "FollowedBy"
+    from: "MoveRecord"
+    to: "MoveRecord"
+    cardinality: "1:0..1"
+    direction: "unidirectional"
+    constraint: "temporal ordering"
+
+  - id: "R26"
+    name: "PlayedBy"
+    from: "MoveRecord"
+    to: "Player"
+    cardinality: "N:1"
+    direction: "unidirectional"
+    constraint: "each action has exactly one player"
+
+  - id: "R27"
+    name: "ResultsIn"
+    from: "MoveRecord"
+    to: "BoardState"
+    cardinality: "1:1"
+    direction: "unidirectional"
+    constraint: "each action produces a board state"
+
+  - id: "R28"
+    name: "Captures"
+    from: "Move"
+    to: "Group"
+    cardinality: "1:N"
+    direction: "unidirectional"
+    constraint: "a move may capture 0+ groups"
+
+  - id: "R29"
+    name: "CausesKo"
+    from: "Move"
+    to: "KoPoint"
+    cardinality: "1:0..1"
+    direction: "unidirectional"
+    constraint: "a move may create 0 or 1 ko points"
+
+  - id: "R30"
+    name: "EndsGame"
+    from: "Pass|Resignation"
+    to: "GameResult"
+    cardinality: "1:0..1"
+    direction: "unidirectional"
+    constraint: "two consecutive passes or resignation ends game"
+
+  - id: "R31"
+    name: "ProducesHash"
+    from: "BoardState"
+    to: "PositionHash"
+    cardinality: "1:1"
+    direction: "unidirectional"
+    constraint: "each board state has exactly one Zobrist hash"
+
+  # ---- Analysis Relations ----
+  - id: "R32"
+    name: "AnalyzedBy"
+    from: "BoardState"
+    to: "AnalysisResult"
+    cardinality: "1:0..1"
+    direction: "unidirectional"
+    constraint: "a position may be analyzed by KataGo"
+
+  - id: "R33"
+    name: "HasBestMove"
+    from: "AnalysisResult"
+    to: "BestMove"
+    cardinality: "1:N"
+    direction: "unidirectional"
+    constraint: "KataGo returns ranked move candidates"
+
+  - id: "R34"
+    name: "HasWinRate"
+    from: "AnalysisResult"
+    to: "WinRate"
+    cardinality: "1:1"
+    direction: "unidirectional"
+    constraint: "root win rate for current player"
+
+  - id: "R35"
+    name: "IsBlunder"
+    from: "Move"
+    to: "Blunder"
+    cardinality: "1:0..1"
+    direction: "unidirectional"
+    constraint: "a move may be classified as a blunder"
+
+  - id: "R36"
+    name: "HasVariation"
+    from: "BestMove"
+    to: "MoveVariation"
+    cardinality: "1:1"
+    direction: "unidirectional"
+    constraint: "each best move has a principal variation"
+
+  # ---- Ko and Superko Relations ----
+  - id: "R37"
+    name: "ForbidsMove"
+    from: "KoPoint"
+    to: "Intersection"
+    cardinality: "1:1"
+    direction: "unidirectional"
+    constraint: "opponent cannot play at this intersection"
+
+  - id: "R38"
+    name: "HasHash"
+    from: "BoardState"
+    to: "PositionHash"
+    cardinality: "1:1"
+    direction: "unidirectional"
+    constraint: "bijective for practical purposes"
+
+  - id: "R39"
+    name: "RecordedIn"
+    from: "PositionHash"
+    to: "PositionHashHistory"
+    cardinality: "N:1"
+    direction: "unidirectional"
+    constraint: "every board hash added to history"
+
+  - id: "R40"
+    name: "ViolatesSuperko"
+    from: "Move"
+    to: "PositionHashHistory"
+    cardinality: "1:0..1"
+    direction: "unidirectional"
+    constraint: "move violates superko if result hash is in history"
+
+# =============================================================================
+# Section 4: Constraint Catalog (27 constraints)
+# =============================================================================
+
+constraints:
+  # ---- Board Constraints ----
+  - id: "C01"
+    name: "ValidBoardSize"
+    category: "board"
+    formal: "size in {9, 13, 19}"
+    enforcement: "reject any other board size at game creation"
+
+  - id: "C02"
+    name: "ValidIndex"
+    category: "board"
+    formal: "0 <= index < size * size"
+    enforcement: "bounds check on every intersection reference"
+
+  - id: "C03"
+    name: "GridLength"
+    category: "board"
+    formal: "grid.length === size * size"
+    enforcement: "assert at board creation"
+
+  - id: "C04"
+    name: "CellRange"
+    category: "board"
+    formal: "grid[i] in {0, 1, 2} for all i"
+    enforcement: "validate upper bound; Uint8Array ensures non-negative"
+
+  - id: "C05"
+    name: "AdjacencyBounds"
+    category: "board"
+    formal: "neighbor indices must be valid and orthogonally adjacent"
+    enforcement: "pre-computed table guarantees this"
+
+  # ---- Move Constraints ----
+  - id: "C06"
+    name: "PlaceOnEmpty"
+    category: "move"
+    formal: "grid[index] === 0 before placement"
+    enforcement: "check before placing; reject if occupied"
+
+  - id: "C07"
+    name: "AlternatingTurns"
+    category: "move"
+    formal: "currentPlayer === (moveNumber % 2 === 0 ? BLACK : WHITE)"
+    enforcement: "enforce at move validation"
+
+  - id: "C08"
+    name: "NoSuperkoViolation"
+    category: "move"
+    formal: "!positionHashes.has(hashAfterMove)"
+    enforcement: "compute hash after move; check against history set"
+
+  - id: "C09"
+    name: "SimpleKoForbidden"
+    category: "move"
+    formal: "if koPoint !== null, opponent cannot play at koPoint on next turn"
+    enforcement: "pre-filter before full superko check"
+
+  - id: "C10"
+    name: "SuicideRule"
+    category: "move"
+    formal: "If rules.allowSuicide is false (default): after placing and clearing opponent, placed stone's group must have > 0 liberties. Under pure Tromp-Taylor, suicide is legal."
+    enforcement: "Check after opponent capture. Reject if group has 0 liberties and suicide is prohibited. Configurable."
+
+  - id: "C11"
+    name: "CaptureBeforeSuicide"
+    category: "move"
+    formal: "opponent groups cleared before own groups"
+    enforcement: "enforce step order: Place -> Clear(opponent) -> Clear(self)"
+
+  - id: "C12"
+    name: "MoveProducesNewState"
+    category: "move"
+    formal: "a move must not recreate the current state (covered by C08)"
+    enforcement: "implicit via superko"
+
+  # ---- Game Flow Constraints ----
+  - id: "C13"
+    name: "GameStartsEmpty"
+    category: "game_flow"
+    formal: "all grid[i] === 0 at move 0"
+    enforcement: "initialize grid to all zeros"
+
+  - id: "C14"
+    name: "BlackFirst"
+    category: "game_flow"
+    formal: "turn(0) === BLACK"
+    enforcement: "initialize currentPlayer to BLACK (1)"
+
+  - id: "C15"
+    name: "TwoPassesEndGame"
+    category: "game_flow"
+    formal: "consecutivePasses === 2 triggers scoring"
+    enforcement: "check counter after each pass"
+
+  - id: "C16"
+    name: "ResignationEndsGame"
+    category: "game_flow"
+    formal: "resignation immediately ends the game; resigning player loses"
+    enforcement: "process before move validation"
+
+  - id: "C17"
+    name: "NoMoveAfterGameEnd"
+    category: "game_flow"
+    formal: "no actions allowed after gamePhase === 'finished'"
+    enforcement: "guard all move/pass handlers"
+
+  # ---- Scoring Constraints ----
+  - id: "C18"
+    name: "AllPointsAccountedFor"
+    category: "scoring"
+    formal: "blackStones + whiteStones + blackTerritory + whiteTerritory + dame === size * size"
+    enforcement: "assert after scoring"
+
+  - id: "C19"
+    name: "TerritoryReachesOneColor"
+    category: "scoring"
+    formal: "a territory region reaches exactly one color"
+    enforcement: "BFS classification"
+
+  - id: "C20"
+    name: "DameReachesBothColors"
+    category: "scoring"
+    formal: "a dame region reaches both Black and White"
+    enforcement: "BFS classification"
+
+  - id: "C21"
+    name: "KomiAppliedToWhite"
+    category: "scoring"
+    formal: "whiteScore = whiteStones + whiteTerritory + komi"
+    enforcement: "apply in scoring function"
+
+  - id: "C22"
+    name: "NonNegativeScores"
+    category: "scoring"
+    formal: "blackScore >= 0 AND whiteScore >= 0"
+    enforcement: "assert after scoring"
+
+  - id: "C23"
+    name: "TiePossibleOnlyWithIntegerKomi"
+    category: "scoring"
+    formal: "with half-point komi, ties are impossible"
+    enforcement: "informational"
+
+  # ---- Hash Constraints ----
+  - id: "C24"
+    name: "DeterministicHash"
+    category: "hash"
+    formal: "same board state produces same hash"
+    enforcement: "fixed PRNG seed for Zobrist table"
+
+  - id: "C25"
+    name: "IncrementalCorrectness"
+    category: "hash"
+    formal: "incremental hash === full recomputation hash"
+    enforcement: "verify in tests"
+
+  - id: "C26"
+    name: "HashHistoryMonotonic"
+    category: "hash"
+    formal: "position hash history is append-only"
+    enforcement: "never remove entries from positionHashes"
+
+  - id: "C27"
+    name: "PassDoesNotChangeHash"
+    category: "hash"
+    formal: "a pass does not modify the board hash"
+    enforcement: "verify hash unchanged after pass"
+
+# =============================================================================
+# Section 5: Edge Cases (20 cases)
+# =============================================================================
+
+edge_cases:
+  - id: "EC-01"
+    name: "Simple Ko"
+    category: "ko"
+    severity: "critical"
+    description: "Single stone captures single stone; immediate recapture would recreate previous board state"
+    detection: "exactly 1 stone captured; capturing group size 1; capturing group has exactly 1 liberty (the captured point)"
+    rule_applied: "TT-06 (positional superko); simple ko optimization"
+
+  - id: "EC-02"
+    name: "Snapback"
+    category: "capture"
+    severity: "high"
+    description: "Capture followed by legal recapture of a larger group; NOT a ko because board state is novel"
+    detection: "recapture removes more stones than original capture; resulting board state is new"
+    rule_applied: "Standard capture mechanics; superko does not forbid"
+
+  - id: "EC-03"
+    name: "Double Ko"
+    category: "ko"
+    severity: "medium"
+    description: "Two independent simple ko positions; one used as threat for the other"
+    detection: "two separate ko shapes on board"
+    rule_applied: "TT-06 (PSK prevents infinite cycling)"
+
+  - id: "EC-04"
+    name: "Triple Ko"
+    category: "ko"
+    severity: "medium"
+    description: "Three independent ko positions; without superko would cycle indefinitely"
+    detection: "three separate ko shapes on board"
+    rule_applied: "TT-06 (PSK prevents cycling; some moves become illegal)"
+
+  - id: "EC-05"
+    name: "Eternal Ko (Chosei)"
+    category: "ko"
+    severity: "medium"
+    description: "Cyclical captures involving larger groups; cycle length > 2"
+    detection: "board position would recur in hash history"
+    rule_applied: "TT-06 (PSK)"
+
+  - id: "EC-06"
+    name: "Quadruple Ko"
+    category: "ko"
+    severity: "low"
+    description: "Four independent ko situations"
+    detection: "four separate ko shapes"
+    rule_applied: "TT-06 (PSK)"
+
+  - id: "EC-07"
+    name: "Seki (Mutual Life)"
+    category: "life_death"
+    severity: "critical"
+    description: "Groups cannot capture each other; shared liberties are dame under area scoring"
+    detection: "adjacent opposing groups with shared liberties where any play is self-atari"
+    rule_applied: "No special rule; emergent from capture mechanics. Scoring: stones count, shared liberties are dame"
+
+  - id: "EC-08"
+    name: "Bent Four in the Corner"
+    category: "life_death"
+    severity: "high"
+    description: "L-shaped group of 4 stones in corner; status depends on ko threats"
+    detection: "specific shape pattern in corner"
+    rule_applied: "NOT automatically dead under Chinese/TT rules; must be played out"
+
+  - id: "EC-09"
+    name: "Two-Eye Life"
+    category: "life_death"
+    severity: "critical"
+    description: "Group with 2+ true eyes cannot be captured"
+    detection: "group has 2+ intersections where all orthogonal neighbors are same color and diagonal condition met"
+    rule_applied: "No special rule; standard mechanics make capture impossible"
+
+  - id: "EC-10"
+    name: "False Eye"
+    category: "life_death"
+    severity: "high"
+    description: "Intersection appears to be eye but diagonal control is insufficient"
+    detection: "all orthogonal neighbors same color but diagonal condition fails"
+    rule_applied: "Opponent can eventually fill; group with only false eyes may be dead"
+
+  - id: "EC-11"
+    name: "Connect-and-Die (Uttegaeshi)"
+    category: "capture"
+    severity: "medium"
+    description: "Connecting groups reduces total liberties; combined group captured"
+    detection: "post-connection group has fewer liberties than sum of parts"
+    rule_applied: "Standard capture mechanics"
+
+  - id: "EC-12"
+    name: "Semeai (Capturing Race)"
+    category: "capture"
+    severity: "high"
+    description: "Adjacent opposing groups race to reduce each other's liberties"
+    detection: "adjacent opposing groups without two eyes each"
+    rule_applied: "Emergent from standard play; no special rule"
+
+  - id: "EC-13"
+    name: "Suicide (Self-Capture)"
+    category: "move"
+    severity: "critical"
+    description: "Placed stone's group has 0 liberties after opponent captures; group removed"
+    detection: "group liberty count is 0 after Clear(opponent)"
+    rule_applied: "TT-07 step 3 (clear own color); legal unless superko violated"
+
+  - id: "EC-14"
+    name: "Positional Superko Edge Cases"
+    category: "ko"
+    severity: "critical"
+    description: "Sending-two-returning-one, long cycles, any repeated board state"
+    detection: "hash of resulting board state found in positionHashes"
+    rule_applied: "TT-06 (PSK)"
+
+  - id: "EC-15"
+    name: "Pass-for-Ko (Strategic Pass)"
+    category: "ko"
+    severity: "medium"
+    description: "Pass to lift ko restriction; under PSK, hash history still applies"
+    detection: "pass does not change board hash"
+    rule_applied: "TT-06; pass does not add new hash to history since board unchanged"
+
+  - id: "EC-16"
+    name: "Group Lifecycle"
+    category: "capture"
+    severity: "low"
+    description: "Stone placed -> may grow -> may be captured -> never returns"
+    detection: "track stone state transitions"
+    rule_applied: "TT-07"
+
+  - id: "EC-17"
+    name: "Board Edges and Corners"
+    category: "board"
+    severity: "high"
+    description: "Intersections at edges/corners have fewer neighbors (2-3 vs 4)"
+    detection: "neighbor count varies by position"
+    rule_applied: "Pre-computed adjacency table handles this"
+
+  - id: "EC-18"
+    name: "Empty Board Pass"
+    category: "game_flow"
+    severity: "low"
+    description: "Passing on empty board is legal; two passes end game with 0:komi score"
+    detection: "pass when moveNumber === 0"
+    rule_applied: "TT-05, TT-08"
+
+  - id: "EC-19"
+    name: "Full Board"
+    category: "board"
+    severity: "low"
+    description: "All intersections occupied; no moves possible; both must pass"
+    detection: "count of empty points === 0"
+    rule_applied: "TT-08, TT-09"
+
+  - id: "EC-20"
+    name: "Moonshine Life"
+    category: "life_death"
+    severity: "low"
+    description: "Group alive because approaching creates favorable ko for defender"
+    detection: "complex positional analysis (KataGo domain)"
+    rule_applied: "No special handling; standard rules resolve correctly"
+
+# =============================================================================
+# Section 6: Board Representation
+# =============================================================================
+
+board_representation:
+  encoding:
+    structure: "1D Uint8Array, row-major order"
+    length: "size * size"
+    values:
+      "0": "Empty"
+      "1": "Black"
+      "2": "White"
+  index_math:
+    to_index: "index = row * size + col"
+    to_row: "row = Math.floor(index / size)"
+    to_col: "col = index % size"
+  adjacency:
+    type: "4-connected (orthogonal)"
+    formula:
+      up: "index - size (valid if index >= size)"
+      down: "index + size (valid if index < size * (size - 1))"
+      left: "index - 1 (valid if index % size !== 0)"
+      right: "index + 1 (valid if index % size !== size - 1)"
+    optimization: "pre-computed Int16Array[] neighbor table"
+  memory:
+    "9x9": "~2 KB total"
+    "13x13": "~4.2 KB total"
+    "19x19": "~9 KB total"
+
+zobrist_hashing:
+  hash_width: 64
+  hash_type: "bigint"
+  table_structure: "bigint[2][N*N] — [color_index][intersection_index]"
+  color_mapping:
+    "0": "Black stone"
+    "1": "White stone"
+  initialization: "seeded PRNG (e.g., xoshiro256**) with fixed seed for determinism"
+  full_hash: "XOR all zobristTable[color-1][i] for each stone on the board"
+  incremental_update:
+    place_stone: "hash ^= zobristTable[color-1][index]"
+    remove_stone: "hash ^= zobristTable[color-1][index]"
+    note: "XOR is its own inverse"
+  superko_detection: "if positionHashes.has(newHash) then move is illegal"
+  collision_probability: "~8.7e-15 per pair over 400-move game with 64-bit hash"
+  simple_ko_optimization:
+    condition: "exactly 1 stone captured AND capturing group size 1 AND capturing group has 1 liberty"
+    action: "store captured point as koPoint; opponent cannot play there next turn"
+    clearing: "clear koPoint after any other move or pass"
+
+# =============================================================================
+# Section 7: Chinese Scoring Algorithm
+# =============================================================================
+
+chinese_scoring:
+  type: "Area scoring"
+  precondition: "game ended (two consecutive passes)"
+  dead_stone_handling: "no agreement phase; stones on board count as-is; players must capture dead stones during play"
+  algorithm:
+    - step: 1
+      name: "Count stones"
+      detail: "Iterate grid; count Black stones and White stones"
+    - step: 2
+      name: "Identify empty regions"
+      detail: "BFS/DFS to find connected components of empty points"
+    - step: 3
+      name: "Classify regions"
+      detail: "For each region, check if it reaches Black, White, or both"
+      classification:
+        reaches_black_only: "Black territory"
+        reaches_white_only: "White territory"
+        reaches_both: "Dame (neutral)"
+    - step: 4
+      name: "Compute scores"
+      detail: "blackScore = blackStones + blackTerritory; whiteScore = whiteStones + whiteTerritory + komi"
+    - step: 5
+      name: "Determine winner"
+      detail: "Compare blackScore and whiteScore; higher wins"
+  invariant: "blackStones + whiteStones + blackTerritory + whiteTerritory + dame === size * size"
+  seki_handling: "seki stones count for owner; shared liberties are dame"
+
+# =============================================================================
+# Section 8: Incremental Build Order
+# =============================================================================
+
+build_order:
+  - stage: 1
+    name: "Place"
+    rules_implemented: ["TT-01", "TT-02", "TT-05", "TT-07 step 1"]
+    functionality:
+      - "Create empty board of size N"
+      - "Place stone at empty intersection"
+      - "Validate intersection is empty"
+      - "Alternate Black/White"
+    test_count_estimate: 10
+
+  - stage: 2
+    name: "Capture"
+    rules_implemented: ["TT-03", "TT-04", "TT-07 steps 2-3"]
+    functionality:
+      - "Identify opponent groups with 0 liberties after placement"
+      - "Remove captured groups"
+      - "Identify own groups with 0 liberties (suicide)"
+      - "Remove self-captured groups"
+      - "Track capture counts"
+    test_count_estimate: 25
+
+  - stage: 3
+    name: "Ko"
+    rules_implemented: ["TT-06 simple ko"]
+    functionality:
+      - "Detect simple ko conditions"
+      - "Store ko point"
+      - "Reject moves at ko point"
+      - "Clear ko point after other moves/passes"
+    test_count_estimate: 15
+
+  - stage: 4
+    name: "Scoring"
+    rules_implemented: ["TT-09", "TT-10"]
+    functionality:
+      - "Identify empty regions"
+      - "Classify as territory or dame"
+      - "Count stones"
+      - "Compute scores with komi"
+      - "Determine winner"
+    test_count_estimate: 20
+
+  - stage: 5
+    name: "Superko"
+    rules_implemented: ["TT-06 full PSK"]
+    functionality:
+      - "Zobrist hash initialization"
+      - "Incremental hash updates"
+      - "Store all hashes in Set"
+      - "Reject repeated positions"
+    test_count_estimate: 20
+
+  - stage: 6
+    name: "GameFlow"
+    rules_implemented: ["TT-05", "TT-08", "TT-10"]
+    functionality:
+      - "Track consecutive passes"
+      - "End game after two passes"
+      - "Handle resignation"
+      - "Complete result reporting"
+    test_count_estimate: 15
+
+build_order_summary:
+  total_test_estimate: 105
+  prd_test_target: "130+ (includes KataGo cross-validation)"
+
+# =============================================================================
+# Section 9: Data Sources
+# =============================================================================
+
+data_sources:
+  - id: "DS-01"
+    name: "CWI Go Games Database"
+    url: "https://homepages.cwi.nl/~aeb/go/games/"
+    size: "88,888+ games"
+    format: "SGF"
+    content: "Japanese professional Go games"
+    license: "Public domain"
+    download: ".tar.gz (45 MB) or .7z (27 MB)"
+    coverage: "Major Japanese tournaments up to 2025"
+    usage: "template engine pattern training, position classification"
+    acquisition: "download archive -> extract SGF -> parse with @sabaki/sgf"
+
+  - id: "DS-02"
+    name: "Fox Go Server Dataset"
+    url: "https://github.com/featurecat/go-dataset"
+    size: "21.1 million games"
+    format: "SGF (7-zip compressed)"
+    content: "All ranks 18k-9p from Fox Go Server"
+    license: "Public (GitHub)"
+    download: "individual rank archives; ~10.6 GB compressed total"
+    date_range: "2012-2019"
+    usage: "large-scale pattern analysis, AI commentary benchmarking"
+    acquisition: "selective download by rank -> extract -> parse with @sabaki/sgf"
+
+  - id: "DS-03"
+    name: "Sabaki SGF Parser"
+    url: "https://www.npmjs.com/package/@sabaki/sgf"
+    github: "https://github.com/SabakiHQ/sgf"
+    type: "npm package"
+    license: "MIT"
+    acquisition: "npm install @sabaki/sgf"
+    api: "parse(sgfString) -> SGFNode[]; parseFile(path) -> SGFNode[] (Node.js only)"
+    usage: "parse SGF files from DS-01 and DS-02; export game records"
+
+# =============================================================================
+# Section 10: Verification Checklist
+# =============================================================================
+
+verification:
+  tromp_taylor_10_rules: true
+  entity_count: 85
+  relation_count: 40
+  constraint_count: 27
+  edge_cases_count: 20
+  chinese_scoring_specified: true
+  board_representation_designed: true
+
+# =============================================================================
+# Section 11: pACS Self-Rating
+# =============================================================================
+
+pacs:
+  F: 88
+  C: 85
+  L: 87
+  score: 85
+  weak_dimension: "Completeness"
+  weak_dimension_detail: >
+    Life/death algorithms specified conceptually but not procedurally (by design:
+    delegated to KataGo). Entity catalog could expand with more UI-facing entities
+    (belongs to Step 4 template-designer).

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 4: Template Explanation Engine Design",
+  "type": "object",
+  "required": ["step", "output_files", "verification"],
+  "properties": {
+    "step": { "const": 4 },
+    "output_files": {
+      "type": "object",
+      "required": ["design", "pattern_catalog", "design_ko"],
+      "properties": {
+        "design": { "type": "string", "pattern": "^outputs/step-04-.*\\.md$" },
+        "pattern_catalog": { "type": "string", "pattern": "^outputs/step-04-.*\\.md$" },
+        "design_ko": { "type": "string", "pattern": "^outputs/step-04-.*\\.ko\\.md$" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["katago_fields_mapped", "beginner_patterns", "intermediate_patterns", "advanced_patterns", "high_risk_fallback_defined", "llm_translator_principle", "coverage_methodology"],
+      "properties": {
+        "katago_fields_mapped": { "type": "boolean" },
+        "beginner_patterns": { "type": "integer", "minimum": 20 },
+        "intermediate_patterns": { "type": "integer", "minimum": 20 },
+        "advanced_patterns": { "type": "integer", "minimum": 20 },
+        "high_risk_fallback_defined": { "type": "boolean" },
+        "llm_translator_principle": { "type": "boolean" },
+        "coverage_methodology": { "type": "boolean" }
+      }
+    },
+    "pacs": { "$ref": "#/$defs/pacs" },
+    "review": { "$ref": "#/$defs/review_result" }
+  },
+  "$defs": {
+    "pacs": {
+      "type": "object",
+      "required": ["F", "C", "L", "score"],
+      "properties": {
+        "F": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "C": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "L": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "review_result": {
+      "type": "object",
+      "required": ["reviewer", "verdict"],
+      "properties": {
+        "reviewer": { "type": "string" },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

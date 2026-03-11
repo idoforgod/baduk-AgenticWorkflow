@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 24: Code Signing & Release",
+  "type": "object",
+  "required": ["step", "output_files", "verification"],
+  "properties": {
+    "step": { "const": 24 },
+    "output_files": {
+      "type": "object",
+      "required": ["release_notes", "release_notes_ko"],
+      "properties": {
+        "release_notes": { "type": "string", "pattern": "^outputs/step-24-.*\\.md$" },
+        "release_notes_ko": { "type": "string", "pattern": "^outputs/step-24-.*\\.ko\\.md$" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["macos_notarization", "windows_signing", "linux_packaging", "github_releases", "auto_update", "landing_page"],
+      "properties": {
+        "macos_notarization": { "type": "boolean" },
+        "windows_signing": { "type": "boolean" },
+        "linux_packaging": { "type": "boolean" },
+        "github_releases": { "type": "boolean" },
+        "auto_update": { "type": "boolean" },
+        "landing_page": { "type": "boolean" }
+      }
+    },
+    "pacs": { "$ref": "#/$defs/pacs" },
+    "review": { "$ref": "#/$defs/review_result" }
+  },
+  "$defs": {
+    "pacs": {
+      "type": "object",
+      "required": ["F", "C", "L", "score"],
+      "properties": {
+        "F": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "C": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "L": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "review_result": {
+      "type": "object",
+      "required": ["reviewer", "verdict"],
+      "properties": {
+        "reviewer": { "type": "string" },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

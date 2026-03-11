@@ -1,0 +1,401 @@
+name: Release
+
+# Triggered exclusively by annotated version tags (e.g., v1.2.3).
+# This workflow builds all platforms, creates a GitHub Release, and
+# uploads the update manifest required by tauri-plugin-updater.
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false  # Never cancel an in-flight release build.
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  CARGO_HOME: ${{ github.workspace }}/.cargo
+
+jobs:
+  # ── Quality Gates ───────────────────────────────────────────────────────────
+  # Release builds must pass every quality gate before binaries are produced.
+  # This mirrors the CI quality job — releases are never exempt.
+  quality:
+    name: Quality Gates (pre-release)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Lint and format (Biome)
+        run: npm run lint -- --reporter=github
+
+      - name: TypeScript type-check
+        run: npm run type-check
+
+      - name: Unit tests (Vitest)
+        run: npm test
+
+      - name: Install Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            pkg-config
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.CARGO_HOME }}/registry
+            ${{ env.CARGO_HOME }}/git
+            app/src-tauri/target
+          key: cargo-release-quality-${{ hashFiles('app/src-tauri/Cargo.lock') }}
+          restore-keys: cargo-release-quality-
+
+      - name: Security audit (npm)
+        run: npm audit --audit-level=high --omit=dev
+
+      - name: Security audit (Cargo)
+        run: |
+          cargo install cargo-audit --quiet
+          cd src-tauri && cargo audit
+
+  # ── Create GitHub Release (draft) ───────────────────────────────────────────
+  # Created as a draft so all platform artifacts can be attached before
+  # the release is made public. The publish step runs after all builds.
+  create-release:
+    name: Create GitHub Release
+    needs: quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    outputs:
+      release-id: ${{ steps.create.outputs.id }}
+      upload-url: ${{ steps.create.outputs.upload_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history required for changelog generation.
+
+      # Extract version from the tag (strips leading "v").
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      # Generate a changelog from commit messages since the last tag.
+      # Sections: Features (feat:), Bug Fixes (fix:), Other.
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="${PREV_TAG}..HEAD"
+          fi
+
+          FEATURES=$(git log "$RANGE" --pretty="format:- %s" --grep="^feat" | head -50)
+          FIXES=$(git log "$RANGE" --pretty="format:- %s" --grep="^fix" | head -50)
+          OTHERS=$(git log "$RANGE" --pretty="format:- %s" | grep -v "^- feat\|^- fix\|^- chore\|^- ci\|^- docs" | head -20)
+
+          {
+            echo "## What's Changed in ${{ github.ref_name }}"
+            echo ""
+            if [ -n "$FEATURES" ]; then
+              echo "### Features"
+              echo "$FEATURES"
+              echo ""
+            fi
+            if [ -n "$FIXES" ]; then
+              echo "### Bug Fixes"
+              echo "$FIXES"
+              echo ""
+            fi
+            if [ -n "$OTHERS" ]; then
+              echo "### Other Changes"
+              echo "$OTHERS"
+              echo ""
+            fi
+            echo "---"
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${{ github.ref_name }}"
+          } > CHANGELOG_RELEASE.md
+
+          # Pass multi-line content via environment file.
+          {
+            echo "notes<<ENDOFNOTES"
+            cat CHANGELOG_RELEASE.md
+            echo "ENDOFNOTES"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create draft release
+        id: create
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Baduk v${{ steps.version.outputs.version }}
+          body: ${{ steps.changelog.outputs.notes }}
+          draft: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+
+  # ── Platform Build Matrix ────────────────────────────────────────────────────
+  build:
+    name: Build (${{ matrix.platform.name }})
+    needs: [quality, create-release]
+    runs-on: ${{ matrix.platform.os }}
+    permissions:
+      contents: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: macOS-arm64
+            os: macos-latest
+            target: aarch64-apple-darwin
+            katago-asset: katago-v1.16.4-metal-mac-arm64
+            katago-binary: katago-aarch64-apple-darwin
+            artifact-suffix: macos-arm64
+
+          - name: macOS-x86_64
+            os: macos-latest
+            target: x86_64-apple-darwin
+            katago-asset: katago-v1.16.4-metal-mac-x64
+            katago-binary: katago-x86_64-apple-darwin
+            artifact-suffix: macos-x86_64
+
+          - name: Windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            katago-asset: katago-v1.16.4-windows-x64
+            katago-binary: katago-x86_64-pc-windows-msvc.exe
+            artifact-suffix: windows-x86_64
+
+          - name: Linux-x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            katago-asset: katago-v1.16.4-linux-x64
+            katago-binary: katago-x86_64-unknown-linux-gnu
+            artifact-suffix: linux-x86_64
+
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.CARGO_HOME }}/registry
+            ${{ env.CARGO_HOME }}/git
+            app/src-tauri/target
+          key: cargo-release-${{ runner.os }}-${{ matrix.platform.target }}-${{ hashFiles('app/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            cargo-release-${{ runner.os }}-${{ matrix.platform.target }}-
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            pkg-config
+
+      - name: Download KataGo sidecar binary
+        env:
+          KATAGO_VERSION: v1.16.4
+          KATAGO_ASSET: ${{ matrix.platform.katago-asset }}
+          KATAGO_BINARY_NAME: ${{ matrix.platform.katago-binary }}
+          TARGET_OS: ${{ runner.os }}
+        shell: bash
+        run: bash ../scripts/download-katago.sh
+
+      # Production releases use the full B18 model for highest quality analysis.
+      - name: Download KataGo neural network model (production)
+        env:
+          # B18 model — strongest available. ~85MB gzipped.
+          MODEL_URL: https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz
+          MODEL_DEST: src-tauri/resources/models/default.bin.gz
+        shell: bash
+        run: |
+          mkdir -p src-tauri/resources/models
+          echo "Downloading KataGo B18 production model..."
+          curl -L --retry 5 --retry-delay 10 -o "$MODEL_DEST" "$MODEL_URL"
+          SIZE=$(wc -c < "$MODEL_DEST")
+          echo "Downloaded model: ${SIZE} bytes"
+
+      - name: Build Tauri application (release)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS code signing
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Windows + Linux updater signing
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: app
+          args: --target ${{ matrix.platform.target }}
+          tagName: ${{ github.ref_name }}
+          releaseName: Baduk ${{ github.ref_name }}
+          releaseId: ${{ needs.create-release.outputs.release-id }}
+          includeUpdaterJson: true
+
+      # ── macOS Post-Build: Notarize DMG ────────────────────────────────────
+      # Notarization must run AFTER tauri-action produces the signed .dmg.
+      # Only executed on macOS runners; skipped on Windows and Linux.
+      - name: Notarize macOS DMG
+        if: runner.os == 'macOS'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        shell: bash
+        run: |
+          BUNDLE_DIR="src-tauri/target/${{ matrix.platform.target }}/release/bundle/dmg"
+          DMG_FILE=$(find "$BUNDLE_DIR" -name "*.dmg" -type f | head -1)
+          if [[ -z "$DMG_FILE" ]]; then
+            echo "ERROR: No .dmg found in $BUNDLE_DIR"
+            exit 1
+          fi
+          echo "Notarizing: $DMG_FILE"
+          ARTIFACT_PATH="$DMG_FILE" bash ../scripts/macos-sign.sh
+
+      # ── Windows Post-Build: Sign installer ────────────────────────────────
+      # Sign the .msi installer with SignTool after tauri-action produces it.
+      # The Tauri updater .sig is generated separately by tauri-action using
+      # TAURI_SIGNING_PRIVATE_KEY; this step handles the OS-level signature.
+      - name: Sign Windows installer
+        if: runner.os == 'Windows'
+        env:
+          WINDOWS_CERTIFICATE_PATH: ${{ secrets.WINDOWS_CERTIFICATE_PATH }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        shell: pwsh
+        run: |
+          $bundleDir = "src-tauri/target/${{ matrix.platform.target }}/release/bundle/msi"
+          $msi = Get-ChildItem -Path $bundleDir -Filter "*.msi" | Select-Object -First 1
+          if (-not $msi) {
+            Write-Error "No .msi found in $bundleDir"
+            exit 1
+          }
+          $env:ARTIFACT_PATH = $msi.FullName
+          Write-Host "Signing: $($msi.FullName)"
+          & "..\scripts\windows-sign.ps1"
+
+      # ── Linux Post-Build: Package verification ────────────────────────────
+      - name: Verify Linux packages
+        if: runner.os == 'Linux'
+        env:
+          APP_VERSION: ${{ github.ref_name }}
+          BUILD_DIR: src-tauri/target/${{ matrix.platform.target }}/release/bundle
+          SKIP_APPIMAGE_RUN: '1'
+        shell: bash
+        run: bash ../scripts/linux-package.sh
+
+      - name: Verify bundle size (< 100MB)
+        shell: bash
+        run: |
+          MAX_BYTES=$((100 * 1024 * 1024))
+          BUNDLE_DIR="src-tauri/target/${{ matrix.platform.target }}/release/bundle"
+          while IFS= read -r -d '' file; do
+            SIZE=$(wc -c < "$file")
+            echo "Installer: $file — ${SIZE} bytes"
+            if [ "$SIZE" -gt "$MAX_BYTES" ]; then
+              echo "ERROR: $file exceeds 100MB budget (${SIZE} bytes). Release blocked."
+              exit 1
+            fi
+          done < <(find "$BUNDLE_DIR" -type f \( -name "*.dmg" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.deb" \) -print0 2>/dev/null)
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform.artifact-suffix }}
+          path: |
+            app/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.dmg
+            app/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.msi
+            app/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.exe
+            app/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.AppImage
+            app/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.deb
+          if-no-files-found: error
+
+  # ── Publish Release ──────────────────────────────────────────────────────────
+  # After all platform builds succeed, un-draft the GitHub Release so it
+  # becomes visible to users and the auto-updater endpoint activates.
+  publish:
+    name: Publish Release
+    needs: [create-release, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Publish GitHub Release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: ${{ needs.create-release.outputs.release-id }},
+              draft: false,
+            });
+            console.log('Release published successfully.');

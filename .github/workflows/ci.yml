@@ -1,0 +1,272 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-flight CI runs for the same branch when a new push arrives.
+# This prevents wasted runner minutes on superseded commits.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Instruct Rust incremental compilation cache to be consistent across builds.
+  CARGO_INCREMENTAL: 0
+  # Point Rust to the shared Cargo registry cache.
+  CARGO_HOME: ${{ github.workspace }}/.cargo
+
+jobs:
+  # ── Quality Gates ───────────────────────────────────────────────────────────
+  # All checks run in parallel on ubuntu-latest for speed. The build matrix
+  # is blocked until this job succeeds.
+  quality:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      # biome check covers both lint and format. --error-on-warnings ensures
+      # warnings are treated as errors per the NEVER DO rule.
+      - name: Lint and format (Biome)
+        run: npm run lint -- --reporter=github
+
+      - name: TypeScript type-check
+        run: npm run type-check
+
+      - name: Unit tests (Vitest)
+        run: npm test
+
+      # Install system libraries required by Tauri on Linux before running
+      # the cargo audit so the workspace resolves correctly.
+      - name: Install Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            pkg-config
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.CARGO_HOME }}/registry
+            ${{ env.CARGO_HOME }}/git
+            app/src-tauri/target
+          key: cargo-quality-${{ runner.os }}-${{ hashFiles('app/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            cargo-quality-${{ runner.os }}-
+
+      - name: Security audit (npm)
+        # --audit-level=high: only fail on high or critical severity advisories.
+        run: npm audit --audit-level=high --omit=dev
+        continue-on-error: false
+
+      - name: Security audit (Cargo)
+        run: |
+          cargo install cargo-audit --quiet
+          cd src-tauri && cargo audit
+
+  # ── Platform Build Matrix ────────────────────────────────────────────────────
+  # Builds Tauri for all three target platforms after quality gates pass.
+  build:
+    name: Build (${{ matrix.platform.name }})
+    needs: quality
+    runs-on: ${{ matrix.platform.os }}
+
+    strategy:
+      fail-fast: false  # Collect failures from all platforms; do not abort early.
+      matrix:
+        platform:
+          - name: macOS-arm64
+            os: macos-latest
+            target: aarch64-apple-darwin
+            katago-asset: katago-v1.16.4-metal-mac-arm64
+            katago-binary: katago-aarch64-apple-darwin
+            artifact-suffix: macos-arm64
+            bundle-ext: dmg
+
+          - name: macOS-x86_64
+            os: macos-latest
+            target: x86_64-apple-darwin
+            katago-asset: katago-v1.16.4-metal-mac-x64
+            katago-binary: katago-x86_64-apple-darwin
+            artifact-suffix: macos-x86_64
+            bundle-ext: dmg
+
+          - name: Windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            katago-asset: katago-v1.16.4-windows-x64
+            katago-binary: katago-x86_64-pc-windows-msvc.exe
+            artifact-suffix: windows-x86_64
+            bundle-ext: msi
+
+          - name: Linux-x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            katago-asset: katago-v1.16.4-linux-x64
+            katago-binary: katago-x86_64-unknown-linux-gnu
+            artifact-suffix: linux-x86_64
+            bundle-ext: AppImage
+
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      # ── Rust Toolchain ────────────────────────────────────────────────────
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.CARGO_HOME }}/registry
+            ${{ env.CARGO_HOME }}/git
+            app/src-tauri/target
+          key: cargo-build-${{ runner.os }}-${{ matrix.platform.target }}-${{ hashFiles('app/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            cargo-build-${{ runner.os }}-${{ matrix.platform.target }}-
+            cargo-build-${{ runner.os }}-
+
+      # ── System Dependencies (Linux only) ─────────────────────────────────
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            pkg-config
+
+      # ── KataGo Sidecar ───────────────────────────────────────────────────
+      # The download script fetches the correct platform binary and places it
+      # in src-tauri/binaries/ with the Tauri target-triple naming convention.
+      # KATAGO_VERSION is pinned so builds are reproducible.
+      - name: Download KataGo sidecar binary
+        env:
+          KATAGO_VERSION: v1.16.4
+          KATAGO_ASSET: ${{ matrix.platform.katago-asset }}
+          KATAGO_BINARY_NAME: ${{ matrix.platform.katago-binary }}
+          TARGET_OS: ${{ runner.os }}
+        shell: bash
+        run: bash ../scripts/download-katago.sh
+
+      # ── NN Model ─────────────────────────────────────────────────────────
+      # A lightweight B6 model (~10MB) is used for CI to stay under the 100MB
+      # size budget. Production builds use the full B18 model.
+      - name: Download KataGo neural network model
+        env:
+          MODEL_URL: https://github.com/lightvector/KataGo/releases/download/v1.4.5/g170e-b6c96-s175395328-d26788732.bin.gz
+          MODEL_DEST: src-tauri/resources/models/default.bin.gz
+        shell: bash
+        run: |
+          mkdir -p src-tauri/resources/models
+          if [ ! -f "$MODEL_DEST" ]; then
+            echo "Downloading KataGo B6 model for CI..."
+            curl -L --retry 3 --retry-delay 5 -o "$MODEL_DEST" "$MODEL_URL"
+          else
+            echo "Model already present, skipping download."
+          fi
+
+      # ── Tauri Build ───────────────────────────────────────────────────────
+      - name: Build Tauri application
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Code signing secrets — must be set in repository Settings > Secrets.
+          # macOS
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Windows
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: app
+          args: --target ${{ matrix.platform.target }}
+
+      # ── Bundle Size Check ─────────────────────────────────────────────────
+      # Fail the build if any installer exceeds the 100MB size budget.
+      - name: Verify bundle size (< 100MB)
+        shell: bash
+        run: |
+          MAX_BYTES=$((100 * 1024 * 1024))
+          BUNDLE_DIR="src-tauri/target/${{ matrix.platform.target }}/release/bundle"
+          FOUND=0
+          while IFS= read -r -d '' file; do
+            SIZE=$(wc -c < "$file")
+            echo "Bundle: $file — ${SIZE} bytes"
+            if [ "$SIZE" -gt "$MAX_BYTES" ]; then
+              echo "ERROR: $file exceeds 100MB budget (${SIZE} bytes)"
+              exit 1
+            fi
+            FOUND=1
+          done < <(find "$BUNDLE_DIR" -type f \( -name "*.dmg" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.deb" \) -print0 2>/dev/null)
+          if [ "$FOUND" -eq 0 ]; then
+            echo "WARNING: No installer bundle found to size-check."
+          fi
+
+      # ── Artifact Upload ───────────────────────────────────────────────────
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: baduk-${{ matrix.platform.artifact-suffix }}
+          # Upload all installer formats produced for this platform.
+          path: |
+            app/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.dmg
+            app/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.msi
+            app/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.exe
+            app/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.AppImage
+            app/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.deb
+          retention-days: 7
+          if-no-files-found: warn

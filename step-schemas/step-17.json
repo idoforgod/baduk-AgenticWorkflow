@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 17: UI Component Library",
+  "type": "object",
+  "required": ["step", "verification"],
+  "properties": {
+    "step": { "const": 17 },
+    "type": { "const": "team_step" },
+    "team": { "const": "m2-ui" },
+    "verification": {
+      "type": "object",
+      "required": ["components_20", "board_sizes_3", "tap_preview_confirm", "pinch_zoom", "winrate_graph", "explanation_card", "navigation", "i18n_3_locales", "style_consistent"],
+      "properties": {
+        "components_20": { "type": "boolean" },
+        "board_sizes_3": { "type": "boolean" },
+        "tap_preview_confirm": { "type": "boolean" },
+        "pinch_zoom": { "type": "boolean" },
+        "winrate_graph": { "type": "boolean" },
+        "explanation_card": { "type": "boolean" },
+        "navigation": { "type": "boolean" },
+        "i18n_3_locales": { "type": "boolean" },
+        "style_consistent": { "type": "boolean" }
+      }
+    },
+    "pacs": { "$ref": "#/$defs/pacs" },
+    "review": { "$ref": "#/$defs/review_result" }
+  },
+  "$defs": {
+    "pacs": {
+      "type": "object",
+      "required": ["F", "C", "L", "score"],
+      "properties": {
+        "F": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "C": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "L": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "review_result": {
+      "type": "object",
+      "required": ["reviewer", "verdict"],
+      "properties": {
+        "reviewer": { "type": "string" },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

@@ -1,0 +1,134 @@
+# Baduk Platform Workflow — Single Source of Truth (SOT)
+# Writer: Orchestrator (sequential steps) or Team Lead (team steps) ONLY
+# All agents: READ-ONLY access
+
+workflow:
+  name: "baduk-platform"
+  current_step: 25
+  status: "completed"
+
+  parent_genome:
+    source: "AgenticWorkflow"
+    version: "2026-03-10"
+    inherited_dna:
+      - absolute-criteria
+      - sot-pattern
+      - 3-phase-structure
+      - 4-layer-qa
+      - safety-hooks
+      - adversarial-review
+      - decision-log
+      - context-preservation
+      - cross-step-traceability
+      - domain-knowledge-structure
+
+  outputs:
+    step-1: "outputs/step-01-tech-validation-report.md"
+    step-1-ko: "outputs/step-01-tech-validation-report.ko.md"
+    step-2: "outputs/step-02-katago-ipc-spec.md"
+    step-2-ko: "outputs/step-02-katago-ipc-spec.ko.md"
+    step-3: "outputs/step-03-rules-spec.md"
+    step-3-ko: "outputs/step-03-rules-spec.ko.md"
+    step-4: "outputs/step-04-template-engine-design.md"
+    step-4-ko: "outputs/step-04-template-engine-design.ko.md"
+    step-6: "outputs/step-06-architecture-design.md"
+    step-6-ko: "outputs/step-06-architecture-design.ko.md"
+    step-7: "outputs/step-07-data-model.md"
+    step-7-ko: "outputs/step-07-data-model.ko.md"
+    step-8: "outputs/step-08-test-strategy.md"
+    step-8-ko: "outputs/step-08-test-strategy.ko.md"
+    step-10: "app/"
+    step-11: "app/src/rules-engine/ + app/src/game-engine/ + app/src/db/repositories/"
+    step-12: "app/src/katago-bridge/"
+    step-13: "app/src/explanation-engine/"
+    step-15: "outputs/step-15-m1-integration-report.md"
+    step-17: "app/src/components/"
+    step-18: "app/src/features/quick-go/"
+    step-19: ".github/workflows/"
+    step-20: "app/src/analytics/"
+    step-21: "outputs/step-21-qa-report.md"
+    step-22: "autopilot-logs/step-22-decision.md"
+    step-23: "app/src/features/onboarding/ + app/src/features/gamification/ + app/src/features/optimization/"
+    step-24: "outputs/step-24-release-notes.md"
+    step-24-ko: "outputs/step-24-release-notes.ko.md"
+    step-25: "autopilot-logs/step-25-decision.md"
+
+  pending_human_action:
+    step: null
+    options: []
+
+  # Active Agent Team tracking — activated during team steps (10, 11, 17, 23)
+  # active_team:
+  #   name: ""
+  #   status: "partial"
+  #   tasks_completed: []
+  #   tasks_pending: []
+  #   completed_summaries: {}
+
+  active_team: null
+
+  completed_teams:
+    - name: "m1-scaffold"
+      completed_at: "2026-03-11"
+      tasks: ["scaffold-frontend", "scaffold-backend"]
+      pacs: 88
+    - name: "m1-core"
+      completed_at: "2026-03-11"
+      tasks: ["rules-engineer", "data-engineer"]
+      pacs: 90
+    - name: "m2-ui"
+      completed_at: "2026-03-11"
+      tasks: ["board-developer", "screen-developer", "i18n-developer"]
+      pacs: 89
+    - name: "m3-features"
+      completed_at: "2026-03-11"
+      tasks: ["onboarding-developer", "gamification-developer", "optimization-engineer"]
+      pacs: 88
+
+  autopilot:
+    enabled: true
+    mode: "partial"
+    manual_gates: [16, 22, 25]
+    auto_approve_threshold: 70
+    decision_log_dir: "autopilot-logs/"
+    auto_approved_steps: [10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 23, 24]
+
+  pacs:
+    current_step_score: 88
+    dimensions: { F: 89, C: 88, L: 89 }
+    weak_dimension: "C"
+    pre_mortem_flag: "Auto-updater pubkey not set; real KataGo integration not tested; SmartScreen warning expected on Windows"
+    history:
+      step-1: { F: 78, C: 75, L: 80, score: 75 }
+      step-2: { F: 82, C: 85, L: 80, score: 80 }
+      step-3: { F: 88, C: 85, L: 87, score: 85 }
+      step-4: { F: 90, C: 88, L: 87, score: 87 }
+      step-6: { F: 90, C: 92, L: 91, score: 90 }
+      step-7: { F: 92, C: 93, L: 91, score: 91 }
+      step-8: { F: 93, C: 95, L: 92, score: 92 }
+      step-10: { F: 90, C: 88, L: 90, score: 88 }
+      step-11: { F: 92, C: 90, L: 91, score: 90 }
+      step-12: { F: 91, C: 89, L: 90, score: 89 }
+      step-13: { F: 92, C: 91, L: 90, score: 90 }
+      step-15: { F: 90, C: 88, L: 89, score: 88 }
+      step-17: { F: 91, C: 89, L: 90, score: 89 }
+      step-18: { F: 85, C: 90, L: 90, score: 85 }
+      step-19: { F: 87, C: 86, L: 87, score: 86 }
+      step-20: { F: 88, C: 87, L: 88, score: 87 }
+      step-21: { F: 89, C: 87, L: 89, score: 87 }
+      step-22: { F: 88, C: 87, L: 88, score: 87 }
+      step-23: { F: 90, C: 88, L: 89, score: 88 }
+      step-24: { F: 89, C: 88, L: 89, score: 88 }
+      step-25: { F: 89, C: 88, L: 89, score: 88 }
+
+  verification:
+    last_verified_step: 25
+    retries: {}
+
+  domain_knowledge:
+    file: "outputs/step-03-domain-knowledge.yaml"
+    entity_count: 86
+    relation_count: 40
+    constraint_count: 27
+    built_at_step: 3
+    last_validated: 3

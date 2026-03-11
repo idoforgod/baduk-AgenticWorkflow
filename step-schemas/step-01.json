@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 1: Technology Stack Validation PoC",
+  "type": "object",
+  "required": ["step", "output_files", "verification"],
+  "properties": {
+    "step": { "const": 1 },
+    "output_files": {
+      "type": "object",
+      "required": ["report", "report_ko"],
+      "properties": {
+        "report": { "type": "string", "pattern": "^outputs/step-01-.*\\.md$" },
+        "report_ko": { "type": "string", "pattern": "^outputs/step-01-.*\\.ko\\.md$" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["tauri_build", "vite_dev", "katago_sidecar", "sqlite_drizzle", "biome_vitest", "constraints_documented"],
+      "properties": {
+        "tauri_build": {
+          "type": "object",
+          "required": ["macos", "windows", "linux"],
+          "properties": {
+            "macos": { "type": "boolean" },
+            "windows": { "type": "boolean" },
+            "linux": { "type": "boolean" }
+          }
+        },
+        "vite_dev": { "type": "boolean" },
+        "katago_sidecar": { "type": "boolean" },
+        "sqlite_drizzle": { "type": "boolean" },
+        "biome_vitest": { "type": "boolean" },
+        "constraints_documented": { "type": "boolean" }
+      }
+    },
+    "pacs": { "$ref": "#/$defs/pacs" },
+    "review": { "$ref": "#/$defs/review_result" }
+  },
+  "$defs": {
+    "pacs": {
+      "type": "object",
+      "required": ["F", "C", "L", "score"],
+      "properties": {
+        "F": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "C": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "L": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "review_result": {
+      "type": "object",
+      "required": ["reviewer", "verdict"],
+      "properties": {
+        "reviewer": { "type": "string" },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

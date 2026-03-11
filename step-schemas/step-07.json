@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 7: Data Model & Interface Contracts",
+  "type": "object",
+  "required": ["step", "output_files", "verification"],
+  "properties": {
+    "step": { "const": 7 },
+    "output_files": {
+      "type": "object",
+      "required": ["data_model", "schema_ts", "interfaces_ts", "data_model_ko"],
+      "properties": {
+        "data_model": { "type": "string", "pattern": "^outputs/step-07-.*\\.md$" },
+        "schema_ts": { "type": "string", "pattern": "^outputs/step-07-.*\\.ts$" },
+        "interfaces_ts": { "type": "string", "pattern": "^outputs/step-07-.*\\.ts$" },
+        "data_model_ko": { "type": "string", "pattern": "^outputs/step-07-.*\\.ko\\.md$" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["table_count", "drizzle_schema_ts", "module_interfaces_defined", "zod_schemas_defined", "katago_types_defined"],
+      "properties": {
+        "table_count": { "type": "integer", "minimum": 6 },
+        "drizzle_schema_ts": { "type": "boolean" },
+        "module_interfaces_defined": { "type": "boolean" },
+        "zod_schemas_defined": { "type": "boolean" },
+        "katago_types_defined": { "type": "boolean" }
+      }
+    },
+    "pacs": { "$ref": "#/$defs/pacs" },
+    "review": { "$ref": "#/$defs/review_result" }
+  },
+  "$defs": {
+    "pacs": {
+      "type": "object",
+      "required": ["F", "C", "L", "score"],
+      "properties": {
+        "F": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "C": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "L": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "review_result": {
+      "type": "object",
+      "required": ["reviewer", "verdict"],
+      "properties": {
+        "reviewer": { "type": "string" },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

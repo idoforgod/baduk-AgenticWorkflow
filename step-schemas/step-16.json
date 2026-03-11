@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 16: M1 Go/No-Go Gate",
+  "type": "object",
+  "required": ["step", "verification"],
+  "properties": {
+    "step": { "const": 16 },
+    "type": { "const": "human_gate" },
+    "verification": {
+      "type": "object",
+      "required": ["template_coverage_80", "core_engine_complete", "build_3os", "sonarqube_sqale", "decision"],
+      "properties": {
+        "template_coverage_80": { "type": "boolean" },
+        "core_engine_complete": { "type": "boolean" },
+        "build_3os": { "type": "boolean" },
+        "sonarqube_sqale": { "type": "boolean" },
+        "decision": { "type": "string", "enum": ["CONTINUE", "PIVOT"] }
+      }
+    }
+  }
+}

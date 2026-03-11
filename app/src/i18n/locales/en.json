@@ -1,0 +1,93 @@
+{
+  "common": {
+    "appName": "Baduk Platform",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "nav": {
+    "home": "Home",
+    "game": "Game",
+    "analysis": "Analysis",
+    "settings": "Settings",
+    "quickGo": "Quick Go"
+  },
+  "game": {
+    "pass": "Pass",
+    "resign": "Resign",
+    "undo": "Undo",
+    "newGame": "New Game",
+    "blackToPlay": "Black to play",
+    "whiteToPlay": "White to play",
+    "captures": "Captures",
+    "komi": "Komi",
+    "score": "Score",
+    "result": "Result",
+    "blackWins": "Black wins by {{points}} points",
+    "whiteWins": "White wins by {{points}} points",
+    "draw": "Draw (Jigo)",
+    "moveNumber": "Move {{number}}",
+    "timer": {
+      "mainTime": "Main time",
+      "byoyomi": "Byoyomi",
+      "overtime": "Overtime"
+    }
+  },
+  "board": {
+    "size9": "9×9",
+    "size13": "13×13",
+    "size19": "19×19",
+    "placeStone": "Place stone at {{coordinate}}",
+    "previewMove": "Preview move at {{coordinate}}"
+  },
+  "analysis": {
+    "winRate": "Win Rate",
+    "scoreLead": "Score Lead",
+    "bestMove": "Best Move",
+    "variation": "Variation",
+    "blunder": "Blunder",
+    "mistake": "Mistake",
+    "inaccuracy": "Inaccuracy",
+    "goodMove": "Good Move",
+    "explanation": "AI Explanation",
+    "tier": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode",
+    "boardSize": "Board Size",
+    "difficulty": "AI Difficulty",
+    "sound": "Sound",
+    "about": "About"
+  },
+  "quickGo": {
+    "title": "Quick Go",
+    "subtitle": "A quick game during your break",
+    "startGame": "Start Game",
+    "timeLimit": "Time Limit",
+    "minutes": "{{count}} minutes",
+    "difficultyLevel": "Difficulty Level"
+  },
+  "onboarding": {
+    "welcome": "Welcome to Baduk Platform",
+    "step1": "Learn the ancient game of Go",
+    "step2": "Play against AI at your level",
+    "step3": "Get instant AI analysis and explanations",
+    "getStarted": "Get Started",
+    "skip": "Skip"
+  }
+}

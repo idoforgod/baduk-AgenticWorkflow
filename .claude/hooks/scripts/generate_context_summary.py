@@ -45,6 +45,7 @@ from _context_lib import (
     archive_and_index_session,
     detect_ulw_mode,
     check_ulw_compliance,
+    sot_paths,
 )
 
 
@@ -109,7 +110,9 @@ def main():
     atomic_write(filepath, md_content)
 
     # E5: Empty Snapshot Guard — update latest.md with rich content protection
-    update_latest_with_guard(snapshot_dir, md_content, entries)
+    # Skip latest.md update during Agent Team execution to protect Orchestrator's RLM
+    if _should_update_latest(project_dir):
+        update_latest_with_guard(snapshot_dir, md_content, entries)
 
     # Update offset tracker
     _write_offset(offset_file, current_size)
@@ -222,6 +225,53 @@ def _write_offset(offset_file, size):
             f.write(str(size))
     except IOError:
         pass
+
+
+def _should_update_latest(project_dir):
+    """Check if latest.md should be updated.
+
+    During Agent Team execution, teammates' Stop hooks should NOT overwrite
+    the Orchestrator's latest.md — this protects the Orchestrator's RLM
+    (Recursive Language Model) context recovery pointer.
+
+    Returns True if latest.md should be updated, False if it should be skipped.
+
+    Bug fix (P0-1): Previously used capture_sot() which returns
+    {"path", "content", "mtime"} — NOT parsed YAML. Now reads SOT
+    directly with PyYAML/regex fallback, same pattern as read_autopilot_state().
+    """
+    try:
+        for sot_path in sot_paths(project_dir):
+            if not os.path.exists(sot_path):
+                continue
+            try:
+                with open(sot_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+            except Exception:
+                continue
+
+            # PyYAML first (precise parsing)
+            try:
+                import yaml
+                data = yaml.safe_load(content)
+                if isinstance(data, dict):
+                    wf = data.get("workflow", {})
+                    if not isinstance(wf, dict):
+                        wf = {}
+                    active = wf.get("active_team", {})
+                    if isinstance(active, dict) and active.get("status") == "partial":
+                        return False  # Team running → skip latest.md
+            except Exception:
+                # Regex fallback — minimal, targeted extraction
+                if re.search(
+                    r'active_team\s*:\s*\n\s+status\s*:\s*"?partial"?',
+                    content,
+                ):
+                    return False
+            return True  # SOT found and parsed — no active team
+    except Exception:
+        pass
+    return True  # No SOT or error — safe default
 
 
 def _generate_decision_log_if_needed(project_dir, entries):

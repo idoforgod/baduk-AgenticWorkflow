@@ -1,0 +1,31 @@
+# AgenticWorkflow Setup Init Log
+# Timestamp: 2026-02-23T21:28:31.227307
+# Python: 3.14.0
+
+[INFO] [PASS] Python version: Python 3.14
+[INFO] [PASS] PyYAML: installed — primary SOT parser available
+[CRITICAL] [FAIL] Script: _context_lib.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/_context_lib.py
+[CRITICAL] [FAIL] Script: block_destructive_commands.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/block_destructive_commands.py
+[CRITICAL] [FAIL] Script: block_test_file_edit.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/block_test_file_edit.py
+[CRITICAL] [FAIL] Script: context_guard.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/context_guard.py
+[CRITICAL] [FAIL] Script: diagnose_context.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/diagnose_context.py
+[CRITICAL] [FAIL] Script: generate_context_summary.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/generate_context_summary.py
+[CRITICAL] [FAIL] Script: predictive_debug_guard.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/predictive_debug_guard.py
+[CRITICAL] [FAIL] Script: restore_context.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/restore_context.py
+[CRITICAL] [FAIL] Script: save_context.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/save_context.py
+[CRITICAL] [FAIL] Script: update_work_log.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/update_work_log.py
+[CRITICAL] [FAIL] Script: validate_diagnosis.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/validate_diagnosis.py
+[CRITICAL] [FAIL] Script: validate_domain_knowledge.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/validate_domain_knowledge.py
+[CRITICAL] [FAIL] Script: validate_pacs.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/validate_pacs.py
+[CRITICAL] [FAIL] Script: validate_retry_budget.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/validate_retry_budget.py
+[CRITICAL] [FAIL] Script: validate_review.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/validate_review.py
+[CRITICAL] [FAIL] Script: validate_traceability.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/validate_traceability.py
+[CRITICAL] [FAIL] Script: validate_translation.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/validate_translation.py
+[CRITICAL] [FAIL] Script: validate_verification.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/validate_verification.py
+[CRITICAL] [FAIL] Script: validate_workflow.py: not found at /Users/cys/Desktop/AIagentsAutomation/AgenticWorkflow/.claude/hooks/scripts/.claude/hooks/scripts/validate_workflow.py
+[INFO] [PASS] context-snapshots/: directory created
+[INFO] [PASS] sessions/: directory created
+[WARNING] [FAIL] .gitignore: file not found — context-snapshots/ may be committed to git
+[INFO] [PASS] SOT write safety: No SOT write patterns in hook scripts
+
+# Summary: 5 passed, 20 failed, 25 total

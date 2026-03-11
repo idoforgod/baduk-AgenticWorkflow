@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 14: Template Explanation Engine Review",
+  "type": "object",
+  "required": ["step", "verification"],
+  "properties": {
+    "step": { "const": 14 },
+    "type": { "const": "human_gate" },
+    "verification": {
+      "type": "object",
+      "required": ["coverage_percent", "high_risk_fallback_100", "tier_quality_validated", "factual_accuracy", "decision"],
+      "properties": {
+        "coverage_percent": { "type": "number", "minimum": 80 },
+        "high_risk_fallback_100": { "type": "boolean" },
+        "tier_quality_validated": { "type": "boolean" },
+        "factual_accuracy": { "type": "boolean" },
+        "decision": { "type": "string", "enum": ["APPROVE", "REVISE", "PIVOT"] }
+      }
+    }
+  }
+}

@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+/* =============================================================================
+   CSS Custom Properties — Theme Variables
+   data-theme="dark"  (default) and data-theme="light"
+   ============================================================================= */
+
+:root,
+[data-theme="dark"] {
+  --bg-base: #0f172a;
+  --bg-surface: #1e293b;
+  --bg-elevated: #334155;
+  --border: #475569;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-fg: #ffffff;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --stone-black: #1a1a1a;
+  --stone-white: #f0f0f0;
+  --board-color: #dcb483;
+  --board-line: #8b6914;
+}
+
+[data-theme="light"] {
+  --bg-base: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f1f5f9;
+  --border: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-fg: #ffffff;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --stone-black: #1a1a1a;
+  --stone-white: #f0f0f0;
+  --board-color: #dcb483;
+  --board-line: #8b6914;
+}
+
+/* =============================================================================
+   Base Reset
+   ============================================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+/* =============================================================================
+   Scrollbar Styling
+   ============================================================================= */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 3px;
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 15: M1 Integration & Cross-Module Testing",
+  "type": "object",
+  "required": ["step", "verification"],
+  "properties": {
+    "step": { "const": 15 },
+    "verification": {
+      "type": "object",
+      "required": ["modules_integrated", "e2e_9x9_game", "build_3os", "biome_vitest_pass", "rules_130_pass", "sonarqube_sqale"],
+      "properties": {
+        "modules_integrated": { "type": "boolean" },
+        "e2e_9x9_game": { "type": "boolean" },
+        "build_3os": { "type": "boolean" },
+        "biome_vitest_pass": { "type": "boolean" },
+        "rules_130_pass": { "type": "boolean" },
+        "sonarqube_sqale": { "type": "boolean" }
+      }
+    },
+    "pacs": { "$ref": "#/$defs/pacs" },
+    "review": { "$ref": "#/$defs/review_result" }
+  },
+  "$defs": {
+    "pacs": {
+      "type": "object",
+      "required": ["F", "C", "L", "score"],
+      "properties": {
+        "F": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "C": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "L": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "review_result": {
+      "type": "object",
+      "required": ["reviewer", "verdict"],
+      "properties": {
+        "reviewer": { "type": "string" },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

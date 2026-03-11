@@ -1,0 +1,93 @@
+{
+  "common": {
+    "appName": "바둑 플랫폼",
+    "loading": "불러오는 중...",
+    "error": "오류가 발생했습니다",
+    "cancel": "취소",
+    "confirm": "확인",
+    "save": "저장",
+    "close": "닫기",
+    "back": "뒤로",
+    "next": "다음",
+    "yes": "예",
+    "no": "아니오"
+  },
+  "nav": {
+    "home": "홈",
+    "game": "게임",
+    "analysis": "분석",
+    "settings": "설정",
+    "quickGo": "빠른 바둑"
+  },
+  "game": {
+    "pass": "패스",
+    "resign": "기권",
+    "undo": "무르기",
+    "newGame": "새 게임",
+    "blackToPlay": "흑 차례",
+    "whiteToPlay": "백 차례",
+    "captures": "따낸 돌",
+    "komi": "덤",
+    "score": "점수",
+    "result": "결과",
+    "blackWins": "흑이 {{points}}집 차이로 승리",
+    "whiteWins": "백이 {{points}}집 차이로 승리",
+    "draw": "무승부 (지고)",
+    "moveNumber": "{{number}}수",
+    "timer": {
+      "mainTime": "제한 시간",
+      "byoyomi": "초읽기",
+      "overtime": "연장 시간"
+    }
+  },
+  "board": {
+    "size9": "9×9",
+    "size13": "13×13",
+    "size19": "19×19",
+    "placeStone": "{{coordinate}}에 돌 놓기",
+    "previewMove": "{{coordinate}} 미리 보기"
+  },
+  "analysis": {
+    "winRate": "승률",
+    "scoreLead": "점수 차",
+    "bestMove": "최선의 수",
+    "variation": "변화도",
+    "blunder": "대악수",
+    "mistake": "실수",
+    "inaccuracy": "부정확한 수",
+    "goodMove": "좋은 수",
+    "explanation": "AI 설명",
+    "tier": {
+      "beginner": "입문",
+      "intermediate": "중급",
+      "advanced": "고급"
+    }
+  },
+  "settings": {
+    "title": "설정",
+    "language": "언어",
+    "theme": "테마",
+    "darkMode": "다크 모드",
+    "lightMode": "라이트 모드",
+    "boardSize": "바둑판 크기",
+    "difficulty": "AI 난이도",
+    "sound": "소리",
+    "about": "앱 정보"
+  },
+  "quickGo": {
+    "title": "빠른 바둑",
+    "subtitle": "쉬는 시간에 한 판",
+    "startGame": "게임 시작",
+    "timeLimit": "제한 시간",
+    "minutes": "{{count}}분",
+    "difficultyLevel": "난이도"
+  },
+  "onboarding": {
+    "welcome": "바둑 플랫폼에 오신 것을 환영합니다",
+    "step1": "수천 년의 역사를 가진 바둑을 배워보세요",
+    "step2": "나에게 맞는 수준의 AI와 대국하세요",
+    "step3": "즉각적인 AI 분석과 해설을 받아보세요",
+    "getStarted": "시작하기",
+    "skip": "건너뛰기"
+  }
+}

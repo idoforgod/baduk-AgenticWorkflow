@@ -1,0 +1,93 @@
+{
+  "common": {
+    "appName": "囲碁プラットフォーム",
+    "loading": "読み込み中...",
+    "error": "エラーが発生しました",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "save": "保存",
+    "close": "閉じる",
+    "back": "戻る",
+    "next": "次へ",
+    "yes": "はい",
+    "no": "いいえ"
+  },
+  "nav": {
+    "home": "ホーム",
+    "game": "対局",
+    "analysis": "棋譜解析",
+    "settings": "設定",
+    "quickGo": "クイック碁"
+  },
+  "game": {
+    "pass": "パス",
+    "resign": "投了",
+    "undo": "待った",
+    "newGame": "新しい対局",
+    "blackToPlay": "黒番",
+    "whiteToPlay": "白番",
+    "captures": "取り石",
+    "komi": "コミ",
+    "score": "得点",
+    "result": "結果",
+    "blackWins": "黒の{{points}}目勝ち",
+    "whiteWins": "白の{{points}}目勝ち",
+    "draw": "持碁（ジゴ）",
+    "moveNumber": "第{{number}}手",
+    "timer": {
+      "mainTime": "持ち時間",
+      "byoyomi": "秒読み",
+      "overtime": "延長"
+    }
+  },
+  "board": {
+    "size9": "9路盤",
+    "size13": "13路盤",
+    "size19": "19路盤",
+    "placeStone": "{{coordinate}}に着手",
+    "previewMove": "{{coordinate}}のプレビュー"
+  },
+  "analysis": {
+    "winRate": "勝率",
+    "scoreLead": "目差",
+    "bestMove": "最善手",
+    "variation": "変化",
+    "blunder": "大悪手",
+    "mistake": "悪手",
+    "inaccuracy": "疑問手",
+    "goodMove": "好手",
+    "explanation": "AI解説",
+    "tier": {
+      "beginner": "入門",
+      "intermediate": "中級",
+      "advanced": "上級"
+    }
+  },
+  "settings": {
+    "title": "設定",
+    "language": "言語",
+    "theme": "テーマ",
+    "darkMode": "ダークモード",
+    "lightMode": "ライトモード",
+    "boardSize": "盤面サイズ",
+    "difficulty": "AI難易度",
+    "sound": "サウンド",
+    "about": "アプリについて"
+  },
+  "quickGo": {
+    "title": "クイック碁",
+    "subtitle": "休憩時間に一局",
+    "startGame": "対局開始",
+    "timeLimit": "持ち時間",
+    "minutes": "{{count}}分",
+    "difficultyLevel": "難易度"
+  },
+  "onboarding": {
+    "welcome": "囲碁プラットフォームへようこそ",
+    "step1": "古来の囲碁を学びましょう",
+    "step2": "自分のレベルに合わせてAIと対局",
+    "step3": "AIによる即時解析と解説を受けましょう",
+    "getStarted": "はじめる",
+    "skip": "スキップ"
+  }
+}

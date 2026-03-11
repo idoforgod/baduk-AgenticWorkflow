@@ -1,0 +1,29 @@
+# Step 7 Entity List — Extracted from DKS
+
+_meta:
+  generator: extract_entities_from_dks.py
+  source: outputs/step-03-domain-knowledge.yaml
+  entity_count: 3
+  relationship_count: 0
+categories:
+  game_entities:
+    entity_count: 3
+    entities:
+      - name: adjacency
+        type: 4-connected (orthogonal)
+      - name: chinese_scoring
+        type: Area scoring
+      - name: data_sources
+        type: npm package
+  board_entities:
+    entity_count: 0
+    entities:
+
+  analysis_entities:
+    entity_count: 0
+    entities:
+
+  user_entities:
+    entity_count: 0
+    entities:
+

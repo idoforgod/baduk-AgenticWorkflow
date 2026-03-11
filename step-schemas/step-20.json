@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Step 20: Analytics & Monitoring",
+  "type": "object",
+  "required": ["step", "verification"],
+  "properties": {
+    "step": { "const": 20 },
+    "verification": {
+      "type": "object",
+      "required": ["posthog_opt_in", "sentry_crash_reporting", "privacy_anonymized", "notifications"],
+      "properties": {
+        "posthog_opt_in": { "type": "boolean" },
+        "sentry_crash_reporting": { "type": "boolean" },
+        "privacy_anonymized": { "type": "boolean" },
+        "notifications": { "type": "boolean" }
+      }
+    },
+    "pacs": { "$ref": "#/$defs/pacs" },
+    "review": { "$ref": "#/$defs/review_result" }
+  },
+  "$defs": {
+    "pacs": {
+      "type": "object",
+      "required": ["F", "C", "L", "score"],
+      "properties": {
+        "F": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "C": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "L": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "review_result": {
+      "type": "object",
+      "required": ["reviewer", "verdict"],
+      "properties": {
+        "reviewer": { "type": "string" },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+      }
+    }
+  }
+}

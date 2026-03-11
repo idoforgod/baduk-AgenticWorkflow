@@ -1,0 +1,52 @@
+[package]
+name = "baduk"
+version = "0.1.0"
+description = "Baduk Platform — desktop Go game app with KataGo AI and explanation engine"
+authors = []
+edition = "2021"
+
+# The `_lib` suffix is required to avoid name conflicts between the lib crate
+# and the binary crate on Windows (see https://github.com/rust-lang/cargo/issues/8519).
+[lib]
+name = "baduk_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# Tauri 2.0 core
+tauri = { version = "2", features = [] }
+
+# Shell plugin — required for KataGo sidecar spawn and stdio communication
+tauri-plugin-shell = "2"
+
+# File system plugin — for KataGo config and model file access
+tauri-plugin-fs = "2"
+
+# Serialization — used by every Tauri command payload and response type
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# SQLite — rusqlite with bundled feature to ship the SQLite binary inside the app
+# This avoids requiring a system-installed SQLite and ensures consistent behavior
+# across macOS, Windows, and Linux. WAL mode is configured at connection time.
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# UUID generation for primary keys (matches Step 7 schema: TEXT UUID PKs)
+uuid = { version = "1", features = ["v4"] }
+
+# Async runtime for async Tauri commands (katago_analyze, storage_save_game, etc.)
+tokio = { version = "1", features = ["full"] }
+
+# Thread-safe shared state for the KataGo process handle and SQLite connection
+# Mutex<Option<KataGoProcess>> pattern for graceful lifecycle management
+# (tauri::State wraps these for DI into Tauri command handlers)
+
+# Logging — stderr monitoring from KataGo and internal diagnostics
+log = "0.4"
+
+[features]
+# Default features for Tauri 2 custom protocol (required for bundled app)
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
