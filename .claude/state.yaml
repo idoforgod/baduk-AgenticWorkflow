@@ -4,7 +4,7 @@
 
 workflow:
   name: "baduk-platform"
-  current_step: 25
+  current_step: 28
   status: "completed"
 
   parent_genome:
@@ -52,6 +52,12 @@ workflow:
     step-24: "outputs/step-24-release-notes.md"
     step-24-ko: "outputs/step-24-release-notes.ko.md"
     step-25: "autopilot-logs/step-25-decision.md"
+    # Post-Launch Enhancement — AI Coach Commentary System
+    step-26: "outputs/step-26-coaching-design.md"
+    step-26-ko: "outputs/step-26-coaching-design.ko.md"
+    step-26-catalog: "outputs/step-26-coaching-catalog.yaml"
+    step-27: "app/src/coaching/"
+    step-28: "outputs/step-28-coaching-qa-report.md"
 
   pending_human_action:
     step: null
@@ -94,8 +100,8 @@ workflow:
     auto_approved_steps: [10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 23, 24]
 
   pacs:
-    current_step_score: 88
-    dimensions: { F: 89, C: 88, L: 89 }
+    current_step_score: 90
+    dimensions: { F: 92, C: 90, L: 91 }
     weak_dimension: "C"
     pre_mortem_flag: "Auto-updater pubkey not set; real KataGo integration not tested; SmartScreen warning expected on Windows"
     history:
@@ -120,6 +126,10 @@ workflow:
       step-23: { F: 90, C: 88, L: 89, score: 88 }
       step-24: { F: 89, C: 88, L: 89, score: 88 }
       step-25: { F: 89, C: 88, L: 89, score: 88 }
+      # Post-Launch Enhancement — AI Coach Commentary System
+      step-26: { F: 95, C: 93, L: 92, score: 92 }
+      step-27: { F: 92, C: 90, L: 91, score: 90 }
+      step-28: { F: 91, C: 89, L: 90, score: 89 }
 
   verification:
     last_verified_step: 25

@@ -8,12 +8,14 @@
 import { ChevronLeft, Flag, RotateCcw, SkipForward } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { Board } from '../components/board/Board'
+import { CoachPanel } from '../components/board/CoachPanel'
 import { WinRateGraph } from '../components/board/WinRateGraph'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { useGameStore } from '../game-engine/store'
 import { useAiOpponent } from '../hooks/useAiOpponent'
+import { useCoaching } from '../hooks/useCoaching'
 import { useKataGoInit } from '../hooks/useKataGo'
 import { useKataGoAnalysis } from '../hooks/useKataGoAnalysis'
 import { useWinRateStore } from '../hooks/useWinRateStore'
@@ -156,6 +158,9 @@ export function GameScreen() {
   const kataGoState = isAnalyzing ? 'analyzing' : initState
   const kataGoError = initError ?? analysisError
 
+  // Coaching messages from AI coach
+  const { messages: coachingMessages } = useCoaching()
+
   // Win rate history from shared store (fed by both useKataGoAnalysis and useAiOpponent)
   const winRateHistory = useWinRateStore((s) => s.history)
   const currentWinRate = useWinRateStore((s) => s.currentWinRate)
@@ -270,8 +275,11 @@ export function GameScreen() {
           )}
         </div>
 
-        {/* Right column: win rate + AI analysis + move list + info */}
+        {/* Right column: coaching + win rate + AI analysis + move list + info */}
         <div className="space-y-4">
+          {/* AI Coach Panel — coaching messages */}
+          {isPlaying && <CoachPanel messages={coachingMessages} />}
+
           {/* Win Rate Graph — live win rate per move */}
           {winRateHistory.length > 0 && (
             <Card>

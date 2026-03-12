@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AnalysisQuery, KataGoMove } from '../core/interfaces'
 import { useGameStore } from '../game-engine/store'
 import { extractTopMoves } from '../katago-bridge/response-parser'
+import { useAnalysisStore } from './useAnalysisStore'
 import { getKataGoService } from './useKataGo'
 import { useWinRateStore } from './useWinRateStore'
 
@@ -114,6 +115,9 @@ export function useKataGoAnalysis(serviceReady: boolean) {
 
         setCandidates(top5)
 
+        // Feed coaching system with validated analysis response
+        useAnalysisStore.getState().setAnalysis(result.value, moveHistory.length)
+
         // Record win rate to shared store (Black's perspective)
         const { winrate: rootWinrate, currentPlayer: rootCurrentPlayer } = result.value.rootInfo
         const blackWinRate =
@@ -158,6 +162,7 @@ export function useKataGoAnalysis(serviceReady: boolean) {
     }
     if (status === 'not_started') {
       resetWinRate()
+      useAnalysisStore.getState().reset()
     }
   }, [status, resetWinRate])
 

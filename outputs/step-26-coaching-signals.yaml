@@ -1,0 +1,524 @@
+{
+  "_meta": {
+    "generator": "extract_coaching_signals.py",
+    "purpose": "Pre-processed coaching signals for Step 26 agent input",
+    "p1_compliance": "Agent receives structured signals, not raw KataGo JSON",
+    "sample_count": 10
+  },
+  "signal_to_concept_mapping": [
+    {
+      "concept": "territory_building",
+      "signals": [
+        "phase=opening",
+        "spatial∈{corner,side}",
+        "adj_opponent=0"
+      ],
+      "description": "집을 만들기 유리한 자리 — 포석 단계에서 적 돌 없는 귀/변에 착수",
+      "requires_board_state": false
+    },
+    {
+      "concept": "approach",
+      "signals": [
+        "phase=opening",
+        "spatial=corner",
+        "adj_opponent≥1"
+      ],
+      "description": "다가가기(걸침) — 포석에서 적의 귀 돌에 접근",
+      "requires_board_state": true
+    },
+    {
+      "concept": "attack",
+      "signals": [
+        "adj_opponent_group.liberties≤3"
+      ],
+      "description": "공격 — 상대 돌 그룹의 활로가 적을 때",
+      "requires_board_state": true
+    },
+    {
+      "concept": "escape",
+      "signals": [
+        "own_group.liberties≤3",
+        "adj_opponent≥2"
+      ],
+      "description": "도주 — 자기 돌 그룹의 활로가 적고 상대에 둘러싸여 있을 때",
+      "requires_board_state": true
+    },
+    {
+      "concept": "connection",
+      "signals": [
+        "adj_friendly_groups≥2"
+      ],
+      "description": "연결 — 두 아군 그룹 사이를 잇는 수",
+      "requires_board_state": true
+    },
+    {
+      "concept": "invasion",
+      "signals": [
+        "ownership[index]<-0.3"
+      ],
+      "description": "침입 — 상대 영역(ownership 음수)에 착수",
+      "requires_board_state": false
+    },
+    {
+      "concept": "defense",
+      "signals": [
+        "ownership[index]>0.3",
+        "adj_opponent≥1"
+      ],
+      "description": "수비 — 자기 영역에서 상대 돌이 접근할 때",
+      "requires_board_state": true
+    },
+    {
+      "concept": "capture",
+      "signals": [
+        "adj_opponent_group.liberties=1"
+      ],
+      "description": "따냄 — 상대 돌이 단수(활로 1개)일 때",
+      "requires_board_state": true
+    },
+    {
+      "concept": "endgame_counting",
+      "signals": [
+        "phase=endgame"
+      ],
+      "description": "끝내기 — 한 집 한 집이 중요한 마무리 단계",
+      "requires_board_state": false
+    },
+    {
+      "concept": "brilliant_move",
+      "signals": [
+        "moveQuality=brilliant (rank=0, prior<0.05, visits>100)"
+      ],
+      "description": "묘수 — AI도 예상하지 못한 뛰어난 수",
+      "requires_board_state": false
+    },
+    {
+      "concept": "good_move",
+      "signals": [
+        "moveQuality∈{excellent,good}"
+      ],
+      "description": "좋은 수 — AI 추천과 일치하는 수",
+      "requires_board_state": false
+    },
+    {
+      "concept": "mistake",
+      "signals": [
+        "moveQuality∈{mistake,blunder} (winrateDelta<-5%)"
+      ],
+      "description": "실수 — 승률이 크게 떨어진 수",
+      "requires_board_state": false
+    },
+    {
+      "concept": "momentum_shift",
+      "signals": [
+        "prev_winrate<50% && curr_winrate>50% (or vice versa)"
+      ],
+      "description": "흐름 전환 — 우세/열세가 뒤바뀌는 순간",
+      "requires_board_state": false
+    },
+    {
+      "concept": "close_game",
+      "signals": [
+        "|winrate-50%|<5"
+      ],
+      "description": "접전 — 양쪽 승률이 비슷한 팽팽한 국면",
+      "requires_board_state": false
+    },
+    {
+      "concept": "positional",
+      "signals": [
+        "(위 어디에도 해당 없음)"
+      ],
+      "description": "일반적 포석/행마 — 특별한 전술 상황 없음",
+      "requires_board_state": false
+    }
+  ],
+  "extracted_signals": [
+    {
+      "sample_id": "opening-001",
+      "category": "opening",
+      "description": "Star-point opening — Black plays 4-4 at Q16, White approaches at R14",
+      "board_size": 19,
+      "move_number": 4,
+      "player": "B",
+      "last_move": "R14",
+      "signals": {
+        "winrate": 0.5432,
+        "winrate_pct": 54.3,
+        "score_lead": 1.2,
+        "prior": 0.1823,
+        "visits": 320,
+        "top_move_gap": 0.0031,
+        "best_move": "Q12",
+        "pv_short": "Q12 → R10",
+        "pv_medium": "Q12 → R10 → Q10"
+      },
+      "spatial": {
+        "position": "corner",
+        "game_phase": "opening"
+      },
+      "assessment": "even",
+      "coaching_potential": {
+        "can_assess_quality": true,
+        "can_detect_phase": true,
+        "can_classify_spatial": true,
+        "needs_board_state_for": [
+          "group_liberties",
+          "adjacent_opponent_count",
+          "adjacent_friendly_count",
+          "tactical_situation_classification"
+        ]
+      }
+    },
+    {
+      "sample_id": "opening-002",
+      "category": "opening",
+      "description": "3-3 invasion — White invades Black's 4-4 corner",
+      "board_size": 19,
+      "move_number": 6,
+      "player": "W",
+      "last_move": "Q4",
+      "signals": {
+        "winrate": 0.4812,
+        "winrate_pct": 48.1,
+        "score_lead": -0.8,
+        "prior": 0.2341,
+        "visits": 400,
+        "top_move_gap": 0.0022,
+        "best_move": "R3",
+        "pv_short": "R3 → R4",
+        "pv_medium": "R3 → R4 → S3"
+      },
+      "spatial": {
+        "position": "side",
+        "game_phase": "opening"
+      },
+      "assessment": "even",
+      "coaching_potential": {
+        "can_assess_quality": true,
+        "can_detect_phase": true,
+        "can_classify_spatial": true,
+        "needs_board_state_for": [
+          "group_liberties",
+          "adjacent_opponent_count",
+          "adjacent_friendly_count",
+          "tactical_situation_classification"
+        ]
+      }
+    },
+    {
+      "sample_id": "opening-003",
+      "category": "opening",
+      "description": "Komoku approach — knight's move approach to 3-4 point",
+      "board_size": 19,
+      "move_number": 3,
+      "player": "W",
+      "last_move": "C4",
+      "signals": {
+        "winrate": 0.492,
+        "winrate_pct": 49.2,
+        "score_lead": -0.3,
+        "prior": 0.1456,
+        "visits": 310,
+        "top_move_gap": 0.0015,
+        "best_move": "E3",
+        "pv_short": "E3 → D6",
+        "pv_medium": "E3 → D6 → F4"
+      },
+      "spatial": {
+        "position": "corner",
+        "game_phase": "opening"
+      },
+      "assessment": "even",
+      "coaching_potential": {
+        "can_assess_quality": true,
+        "can_detect_phase": true,
+        "can_classify_spatial": true,
+        "needs_board_state_for": [
+          "group_liberties",
+          "adjacent_opponent_count",
+          "adjacent_friendly_count",
+          "tactical_situation_classification"
+        ]
+      }
+    },
+    {
+      "sample_id": "middle-001",
+      "category": "middle_game",
+      "description": "Cutting fight — Black cuts through White's knight's move connection",
+      "board_size": 19,
+      "move_number": 52,
+      "player": "B",
+      "last_move": "K10",
+      "signals": {
+        "winrate": 0.5823,
+        "winrate_pct": 58.2,
+        "score_lead": 3.4,
+        "prior": 0.256,
+        "visits": 450,
+        "top_move_gap": 0.0169,
+        "best_move": "J9",
+        "pv_short": "J9 → K9",
+        "pv_medium": "J9 → K9 → H10"
+      },
+      "spatial": {
+        "position": "center",
+        "game_phase": "middle_game"
+      },
+      "assessment": "slight_advantage",
+      "coaching_potential": {
+        "can_assess_quality": true,
+        "can_detect_phase": true,
+        "can_classify_spatial": true,
+        "needs_board_state_for": [
+          "group_liberties",
+          "adjacent_opponent_count",
+          "adjacent_friendly_count",
+          "tactical_situation_classification"
+        ]
+      }
+    },
+    {
+      "sample_id": "middle-002",
+      "category": "middle_game",
+      "description": "Influence vs territory — Black builds central thickness",
+      "board_size": 19,
+      "move_number": 78,
+      "player": "B",
+      "last_move": "H16",
+      "signals": {
+        "winrate": 0.6102,
+        "winrate_pct": 61.0,
+        "score_lead": 5.1,
+        "prior": 0.189,
+        "visits": 380,
+        "top_move_gap": 0.0122,
+        "best_move": "K14",
+        "pv_short": "K14 → H13",
+        "pv_medium": "K14 → H13 → K16"
+      },
+      "spatial": {
+        "position": "side",
+        "game_phase": "middle_game"
+      },
+      "assessment": "slight_advantage",
+      "coaching_potential": {
+        "can_assess_quality": true,
+        "can_detect_phase": true,
+        "can_classify_spatial": true,
+        "needs_board_state_for": [
+          "group_liberties",
+          "adjacent_opponent_count",
+          "adjacent_friendly_count",
+          "tactical_situation_classification"
+        ]
+      }
+    },
+    {
+      "sample_id": "middle-003",
+      "category": "middle_game",
+      "description": "Invasion timing — White invades Black's moyo",
+      "board_size": 19,
+      "move_number": 64,
+      "player": "W",
+      "last_move": "J5",
+      "signals": {
+        "winrate": 0.435,
+        "winrate_pct": 43.5,
+        "score_lead": -2.8,
+        "prior": 0.167,
+        "visits": 350,
+        "top_move_gap": 0.007,
+        "best_move": "F10",
+        "pv_short": "F10 → G10",
+        "pv_medium": "F10 → G10 → E11"
+      },
+      "spatial": {
+        "position": "side",
+        "game_phase": "middle_game"
+      },
+      "assessment": "slight_disadvantage",
+      "coaching_potential": {
+        "can_assess_quality": true,
+        "can_detect_phase": true,
+        "can_classify_spatial": true,
+        "needs_board_state_for": [
+          "group_liberties",
+          "adjacent_opponent_count",
+          "adjacent_friendly_count",
+          "tactical_situation_classification"
+        ]
+      }
+    },
+    {
+      "sample_id": "endgame-001",
+      "category": "endgame",
+      "description": "Double sente yose — Black plays endgame move worth ~4 points",
+      "board_size": 19,
+      "move_number": 210,
+      "player": "B",
+      "last_move": "S16",
+      "signals": {
+        "winrate": 0.6234,
+        "winrate_pct": 62.3,
+        "score_lead": 4.5,
+        "prior": 0.21,
+        "visits": 500,
+        "top_move_gap": 0.0044,
+        "best_move": "B2",
+        "pv_short": "B2 → C2",
+        "pv_medium": "B2 → C2 → A2"
+      },
+      "spatial": {
+        "position": "corner",
+        "game_phase": "endgame"
+      },
+      "assessment": "slight_advantage",
+      "coaching_potential": {
+        "can_assess_quality": true,
+        "can_detect_phase": true,
+        "can_classify_spatial": true,
+        "needs_board_state_for": [
+          "group_liberties",
+          "adjacent_opponent_count",
+          "adjacent_friendly_count",
+          "tactical_situation_classification"
+        ]
+      }
+    },
+    {
+      "sample_id": "endgame-002",
+      "category": "endgame",
+      "description": "Territory boundary — small yose move on 9×9 board",
+      "board_size": 9,
+      "move_number": 48,
+      "player": "W",
+      "last_move": "B7",
+      "signals": {
+        "winrate": 0.41,
+        "winrate_pct": 41.0,
+        "score_lead": -1.5,
+        "prior": 0.189,
+        "visits": 450,
+        "top_move_gap": 0.005,
+        "best_move": "C6",
+        "pv_short": "C6 → D7",
+        "pv_medium": "C6 → D7 → B6"
+      },
+      "spatial": {
+        "position": "corner",
+        "game_phase": "endgame"
+      },
+      "assessment": "slight_disadvantage",
+      "coaching_potential": {
+        "can_assess_quality": true,
+        "can_detect_phase": true,
+        "can_classify_spatial": true,
+        "needs_board_state_for": [
+          "group_liberties",
+          "adjacent_opponent_count",
+          "adjacent_friendly_count",
+          "tactical_situation_classification"
+        ]
+      }
+    },
+    {
+      "sample_id": "life-death-001",
+      "category": "life_death",
+      "description": "Corner life/death — White group needs two eyes to live",
+      "board_size": 19,
+      "move_number": 95,
+      "player": "W",
+      "last_move": "S3",
+      "signals": {
+        "winrate": 0.32,
+        "winrate_pct": 32.0,
+        "score_lead": -8.5,
+        "prior": 0.34,
+        "visits": 500,
+        "top_move_gap": 0.04,
+        "best_move": "T1",
+        "pv_short": "T1 → T4",
+        "pv_medium": "T1 → T4 → S3"
+      },
+      "spatial": {
+        "position": "corner",
+        "game_phase": "middle_game"
+      },
+      "assessment": "significant_disadvantage",
+      "coaching_potential": {
+        "can_assess_quality": true,
+        "can_detect_phase": true,
+        "can_classify_spatial": true,
+        "needs_board_state_for": [
+          "group_liberties",
+          "adjacent_opponent_count",
+          "adjacent_friendly_count",
+          "tactical_situation_classification"
+        ]
+      }
+    },
+    {
+      "sample_id": "ko-001",
+      "category": "ko",
+      "description": "Direct ko — Black tries to capture ko for corner life",
+      "board_size": 19,
+      "move_number": 118,
+      "player": "B",
+      "last_move": "N15",
+      "signals": {
+        "winrate": 0.551,
+        "winrate_pct": 55.1,
+        "score_lead": 2.0,
+        "prior": 0.28,
+        "visits": 420,
+        "top_move_gap": 0.019,
+        "best_move": "P16",
+        "pv_short": "P16 → A1",
+        "pv_medium": "P16 → A1 → O16"
+      },
+      "spatial": {
+        "position": "side",
+        "game_phase": "middle_game"
+      },
+      "assessment": "slight_advantage",
+      "coaching_potential": {
+        "can_assess_quality": true,
+        "can_detect_phase": true,
+        "can_classify_spatial": true,
+        "needs_board_state_for": [
+          "group_liberties",
+          "adjacent_opponent_count",
+          "adjacent_friendly_count",
+          "tactical_situation_classification"
+        ]
+      }
+    }
+  ],
+  "board_state_functions_available": {
+    "findGroup": {
+      "source": "rules-engine/board.ts:128",
+      "returns": "{color, stones: Set<number>, liberties: Set<number>}",
+      "usage": "Detect group danger (liberties count), connection opportunities"
+    },
+    "getAdjacencyTable": {
+      "source": "rules-engine/board.ts:47",
+      "returns": "Array of neighbor index arrays per intersection",
+      "usage": "Count adjacent opponent/friendly stones"
+    }
+  },
+  "existing_reusable_functions": {
+    "parseAnalysis": {
+      "source": "explanation-engine/output-parser.ts:169",
+      "returns": "ParsedAnalysis with winrateDelta, moveQuality, gamePhase, etc."
+    },
+    "classifyMoveQuality": {
+      "source": "explanation-engine/output-parser.ts:89",
+      "returns": "MoveQuality enum (brilliant/excellent/good/.../blunder)"
+    },
+    "detectGamePhase": {
+      "source": "explanation-engine/output-parser.ts:45",
+      "returns": "'opening' | 'middle_game' | 'endgame'"
+    }
+  }
+}

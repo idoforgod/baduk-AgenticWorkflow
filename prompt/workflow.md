@@ -486,6 +486,71 @@
 
 ---
 
+## Post-Launch Enhancement — AI Coach Commentary System
+
+> **목표**: 매 수마다 따뜻한 코칭 해설을 제공하는 실시간 AI 코치. KataGo 데이터 + 보드 상태를 100% 결정론적 코드로 해석. LLM 개입 ZERO.
+>
+> **P1 원칙 강화**: "KataGo = 진실의 원천, 결정론적 코드 = 해석기, 사전 작성 템플릿 = 텍스트". 전 파이프라인에 할루시네이션 원천봉쇄.
+
+### 26. Coaching Engine Design
+- **Pre-processing**: `scripts/extract_coaching_signals.py` — 기존 KataGo 분석 샘플 20개에서 코칭 가능한 시그널 추출·정제. 에이전트에게 raw JSON이 아닌 구조화된 시그널 테이블만 전달 (P1 원칙: AI 전달 전 Python으로 노이즈 제거)
+- **Agent**: `@template-designer` (opus)
+- **Verification**:
+  - [ ] KataGo 시그널 → 전략적 개념 매핑 테이블 15+ 매핑 정의
+  - [ ] 매핑마다 사용하는 시그널 조합 명시 (winrate? ownership? liberties? coordinates?)
+  - [ ] 코칭 템플릿 카탈로그 30+ 패턴 (beginner 티어 우선, 한국어)
+  - [ ] 전술 분류 알고리즘 설계: 결정론적 if/else 규칙으로만 구성 (LLM/ML 사용 금지)
+  - [ ] 격려 상태 머신 설계 (streak, momentum, recovery 전이)
+  - [ ] 보드 상태 분석 시그널 정의 (좌표→위치, findGroup→활로, ownership→영역)
+  - [ ] "KataGo = 진실의 원천, LLM = 번역기" 원칙이 설계에 구조적으로 반영됨
+  - [ ] Step 27 구현에 직접 사용 가능한 형식 (파이프라인 연결)
+- **Task**: Design the AI Coach Commentary System for real-time gameplay coaching. (1) Signal-to-Concept Mapping Table: Define deterministic mappings from observable KataGo signals + board state to strategic concepts. Each mapping must specify: input signals, threshold values, output concept. Minimum 15 mappings covering: territory_building, approach, attack, escape, connection, invasion, defense, capture, endgame, brilliant_move, good_move, mistake, momentum_shift, close_game, positional. (2) Coaching Template Catalog: Write 30+ Korean coaching templates for beginner tier. Each template maps to one strategic concept from the mapping table. Tone: warm mentor (이세돌 9단이 초보자에게 가르치는 느낌). Templates use {slot} notation for data injection. Templates are pre-authored text — NO runtime LLM generation. (3) Tactical Classification Algorithm: Design deterministic rules using ONLY: move GTP coordinates, findGroup() liberties, adjacency counts, ownership[], PV analysis, winrate delta, game phase. Must be implementable as pure TypeScript if/else — no ML, no LLM, no probabilistic estimation. (4) Encouragement State Machine: Define states and transitions for adaptive encouragement based on player performance (consecutive good moves → praise, blunder → recovery, momentum shift → excitement). (5) Board State Signals: Define which rules-engine functions are needed (findGroup from board.ts, getAdjacencyTable from board.ts) and how their outputs map to coaching concepts (liberties count → danger level, adjacent opponent count → tactical pressure). Reference: Step 4 (template engine design pattern), Step 2 (KataGo IPC spec), Step 3 (DKS), outputs/step-26-coaching-signals.yaml (pre-processed input).
+- **Output**: `outputs/step-26-coaching-design.md` + `outputs/step-26-coaching-catalog.yaml`
+- **Review**: `@reviewer` — 설계 완전성, 결정론적 분류 검증 + `@fact-checker` — 바둑 전략 해석 정확성
+- **Translation**: `@translator` → `outputs/step-26-coaching-design.ko.md`
+
+### 27. Coaching Engine Implementation
+- **Pre-processing**: 없음 (Step 26 산출물이 직접 입력)
+- **Agent**: `@template-engineer` (opus)
+- **Verification**:
+  - [ ] `hooks/useAnalysisStore.ts`: Zustand store로 AnalysisResponse 공유 — `useWinRateStore` 패턴 준수
+  - [ ] `coaching/strategic-classifier.ts`: 전술 분류 100% 결정론적 (LLM 호출 ZERO, 확률적 판단 ZERO)
+  - [ ] `coaching/coaching-templates.ts`: Step 26 카탈로그의 모든 30+ 패턴 구현
+  - [ ] `coaching/coaching-adapter.ts`: ParsedAnalysis + BoardGrid + findGroup + PlayerContext 결합
+  - [ ] `hooks/useCoaching.ts`: 매 수(흑/백 모두) 코칭 메시지 생성 확인
+  - [ ] `components/board/CoachPanel.tsx`: 채팅 버블 UI, emotion별 스타일링, 접기 가능
+  - [ ] `coaching/types.ts`: CoachingMessage, TacticalSituation 등 코칭 전용 타입 (core/interfaces.ts 무수정)
+  - [ ] 기존 `useKataGoAnalysis.ts`, `useAiOpponent.ts` 수정 최소화 (각 +3줄, 반환타입 불변)
+  - [ ] `screens/GameScreen.tsx` CoachPanel 통합 (+15줄, 기존 컴포넌트 무파괴)
+  - [ ] `explanation-engine/*` 전체 무수정 (parseAnalysis import만, 구조 변경 없음)
+  - [ ] 기존 전체 테스트 스위트 통과 (회귀 없음)
+  - [ ] 코칭 전용 단위 테스트 20+ 케이스
+  - [ ] 전술 분류 테스트: 각 TacticalSituation에 최소 3개 테스트
+- **Post-processing**: `scripts/validate_coaching_rules.py` — Golden Dataset 50 포지션에 대해 전술 분류 100% 정확도 검증 + 분류↔텍스트 일치성 + 수치 슬롯 ±0.1% 정확도
+- **Task**: Implement the AI Coach Commentary System based on Step 26 design. (1) Shared Analysis Store (hooks/useAnalysisStore.ts): Zustand store following useWinRateStore pattern (hooks/useWinRateStore.ts). Stores current + previous AnalysisResponse + moveNumber. Written by useKataGoAnalysis (+1 line in result.ok block) and useAiOpponent (+1 line in result.ok block). Return types unchanged — zero consumer breakage. (2) Strategic Classifier (coaching/strategic-classifier.ts): Implement Step 26's tactical classification algorithm as pure TypeScript. Inputs: ParsedAnalysis + BoardGrid + boardSize + lastMoveIndex + player. Uses: parseAnalysis() from explanation-engine/output-parser (import, no modification), findGroup() from rules-engine/board (import, no modification), getAdjacencyTable() from rules-engine/board (import, no modification). Output: TacticalSituation enum. CONSTRAINT: Every classification path must be deterministic if/else. No randomness, no LLM, no heuristic estimation. (3) Coaching Adapter (coaching/coaching-adapter.ts): Main engine composing: parseAnalysis → strategic classifier → template selection → slot filling → encouragement. Takes AnalysisResponse + BoardGrid + PlayerContext. Returns CoachingMessage. (4) Coaching Templates (coaching/coaching-templates.ts): Compile Step 26 catalog (outputs/step-26-coaching-catalog.yaml) into TypeScript constants. Same structural pattern as explanation-engine/patterns.ts but simpler (concept → template text + slots). (5) Types (coaching/types.ts): CoachingMessage, TacticalSituation, PlayerContext, CoachingEmotion, CoachingType. Separate file — do NOT modify core/interfaces.ts. (6) React Hook (hooks/useCoaching.ts): Subscribes to useAnalysisStore + useGameStore. On analysis update: calls coaching adapter. Manages PlayerContext state (consecutiveGoodMoves, momentum). (7) UI Component (components/board/CoachPanel.tsx): Chat-bubble style, emotion-based styling (positive=green, warning=orange, encouraging=blue), collapsible, auto-scroll, max 5 recent messages visible. (8) GameScreen Integration (screens/GameScreen.tsx): Add CoachPanel to right column above Win Rate Graph. Conditional render. +15 lines. Reference: Step 26 design (outputs/step-26-coaching-design.md, outputs/step-26-coaching-catalog.yaml). Existing code: hooks/useWinRateStore.ts (Zustand pattern), explanation-engine/output-parser.ts (parseAnalysis), rules-engine/board.ts (findGroup, getAdjacencyTable).
+- **Output**: `app/src/coaching/` (5 files) + `app/src/hooks/useAnalysisStore.ts` + `app/src/hooks/useCoaching.ts` + `app/src/components/board/CoachPanel.tsx` + minimal modifications to 3 existing files
+- **Review**: `@reviewer` — 코드 품질, 결정론적 분류 검증, 기존 시스템 파급 영향
+- **Translation**: 없음 (code)
+
+### 28. Coaching Quality Validation
+- **Pre-processing**: `scripts/validate_coaching_coverage.py` — 50 Golden 포지션에 대한 코칭 엔진 출력의 커버리지(≥80%)·분류↔텍스트 일치성·수치 정확도(±0.1%)·제네릭 폴백 비율(≤20%) 자동 검증
+- **Agent**: `@qa-engineer` (sonnet)
+- **Verification**:
+  - [ ] Golden Dataset 50 포지션 전수 검증 통과 (opening 15 + middle 20 + endgame 15)
+  - [ ] 코칭 메시지 커버리지 ≥ 80% (의미있는 코칭, 제네릭 폴백이 아닌)
+  - [ ] 전술 분류 정확도 100% (결정론적 코드이므로 99%가 아닌 100%)
+  - [ ] 격려 시스템: 연속 좋은 수 → 칭찬, 실수 후 → 격려 동작 확인
+  - [ ] 기존 ExplanationEngine 회귀 없음 (explanation-engine 테스트 전량 통과)
+  - [ ] 기존 전체 테스트 스위트 통과 (rules-engine 130+, integration, E2E)
+  - [ ] `npm run tauri build` 빌드 성공
+- **Post-processing**: `python3 .claude/hooks/scripts/validate_traceability.py --project-dir . --check-output --step 28` — Step 26-28 교차 단계 추적성 검증
+- **Task**: Comprehensive quality validation of the coaching engine. (1) Golden Dataset Testing: Run coaching engine against 50 positions (opening 15, middle game 20, endgame 15). For each position verify: tactical classification matches expected, coaching text contains expected keywords, slot values match KataGo data. (2) Regression Testing: Run ALL existing test suites — rules-engine (130+ tests), explanation-engine (pattern matching + coverage), katago-bridge (IPC + response parsing), integration tests (m1-integration), E2E scenarios. All must pass with zero failures. (3) Coaching-Specific Tests: Verify each TacticalSituation has ≥3 test positions covering it. Verify template slot filling accuracy. Verify encouragement state machine transitions. Verify CoachPanel render tests. (4) Build Verification: npm run tauri build on local OS.
+- **Output**: `outputs/step-28-coaching-qa-report.md`
+- **Review**: `@reviewer` — 검증 완전성
+- **Translation**: 없음 (test report)
+
+---
+
 ## Claude Code Configuration
 
 ### Sub-agents

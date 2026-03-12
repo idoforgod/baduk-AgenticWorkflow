@@ -1,0 +1,624 @@
+# =============================================================================
+# AI Coach Commentary System: Coaching Template Catalog
+# =============================================================================
+# Version: 1.0.0
+# Author: @template-designer (Step 26)
+# Date: 2026-03-12
+# Consumer: Step 27 (coaching-engine implementer)
+# Companion: outputs/step-26-coaching-design.md
+# Total Templates: 52 (45 base + 7 suffixes)
+# Language: Korean (beginner tier, warm mentor tone)
+#
+# Core Invariant: KataGo = truth, LLM = zero
+#   - Every {placeholder} maps to a KataGo field or deterministic computation
+#   - ALL templates are pre-authored. Zero runtime LLM generation.
+#   - Slot values come ONLY from ParsedAnalysis, BoardGrid, or fixed computations.
+#
+# Template ID Convention: C-{situation_code}-{sequence}
+#   Situation codes:
+#     TB=territory_building, AP=approach, AT=attack, ES=escape,
+#     CN=connection, IN=invasion, DF=defense, CP=capture,
+#     EC=endgame_counting, BR=brilliant, GM=good_move,
+#     MK=mistake, MS=momentum_shift, CG=close_game, PS=positional
+#   Suffixes:
+#     SK=streak, RC=recovery, MO=momentum
+# =============================================================================
+
+version: "1.0.0"
+tier: "beginner"
+language: "ko"
+
+# =============================================================================
+# Slot Type Reference
+# =============================================================================
+# Every slot used across all templates is defined here with its data source.
+# No free-text slots exist. Every slot is filled by deterministic code.
+# =============================================================================
+
+slot_definitions:
+  winrate:
+    type: "number"
+    format: "integer"
+    source: "parsed.winratePct (rounded to integer)"
+    example: "54"
+
+  score_lead:
+    type: "number"
+    format: "one_decimal"
+    source: "parsed.raw.rootInfo.scoreLead"
+    example: "3.5"
+
+  best_move:
+    type: "string"
+    format: "GTP coordinate"
+    source: "parsed.raw.moveInfos[0].move"
+    example: "Q16"
+
+  pv_short:
+    type: "string"
+    format: "arrow-separated GTP"
+    source: "parsed.pvShort"
+    example: "Q12 -> R10"
+
+  game_phase:
+    type: "string"
+    format: "Korean label"
+    source: "parsed.computed.movePhase mapped via {opening:'포석', middle_game:'중반전', endgame:'끝내기'}"
+    example: "포석"
+
+  winrate_delta:
+    type: "number"
+    format: "integer"
+    source: "parsed.winrateDeltaPct (rounded to integer)"
+    example: "8"
+
+  capture_count:
+    type: "number"
+    format: "integer"
+    source: "max(group.stones.size) for adjacent opponent groups with liberties.size === 1"
+    example: "3"
+
+  liberties:
+    type: "number"
+    format: "integer"
+    source: "ownGroup.liberties.size"
+    example: "2"
+
+  consecutive_count:
+    type: "number"
+    format: "integer"
+    source: "encouragementFSM.consecutiveGoodMoves"
+    example: "5"
+
+  opponent_liberties:
+    type: "number"
+    format: "integer"
+    source: "min(group.liberties.size) for adjacent opponent groups with liberties.size <= 3"
+    example: "2"
+
+  spatial:
+    type: "string"
+    format: "Korean label"
+    source: "classifySpatial() mapped via {corner:'귀', side:'변', center:'중앙'}"
+    example: "귀"
+
+# =============================================================================
+# Classification Rules (referenced from design doc Section 4)
+# =============================================================================
+# Each situation has a priority and exact conditions.
+# First match in priority order wins.
+# =============================================================================
+
+classification_rules:
+  brilliant_move:
+    priority: 1
+    conditions:
+      - "moveQuality === 'brilliant'"
+    requires_board_state: false
+    requires_ownership: false
+
+  mistake:
+    priority: 1
+    conditions:
+      - "moveQuality === 'blunder' OR moveQuality === 'mistake'"
+    requires_board_state: false
+    requires_ownership: false
+
+  momentum_shift:
+    priority: 2
+    conditions:
+      - "previousWinrate !== null"
+      - "(previousWinrate < 0.50 AND currentWinrate >= 0.50) OR (previousWinrate >= 0.50 AND currentWinrate < 0.50)"
+    requires_board_state: false
+    requires_ownership: false
+
+  capture:
+    priority: 3
+    conditions:
+      - "grid[lastMoveIndex] !== EMPTY"
+      - "any adjacent opponent group has liberties.size === 1"
+    requires_board_state: true
+    requires_ownership: false
+
+  attack:
+    priority: 3
+    conditions:
+      - "grid[lastMoveIndex] !== EMPTY"
+      - "any adjacent opponent group has 2 <= liberties.size <= 3"
+    requires_board_state: true
+    requires_ownership: false
+
+  escape:
+    priority: 3
+    conditions:
+      - "grid[lastMoveIndex] !== EMPTY"
+      - "ownGroup.liberties.size <= 3"
+      - "adjOpponentCount >= 2"
+    requires_board_state: true
+    requires_ownership: false
+
+  connection:
+    priority: 3
+    conditions:
+      - "grid[lastMoveIndex] !== EMPTY"
+      - "adjFriendlyNeighborCount >= 2"
+    requires_board_state: true
+    requires_ownership: false
+
+  invasion:
+    priority: 4
+    conditions:
+      - "ownership !== null"
+      - "effectiveOwnership < -0.3"
+    requires_board_state: false
+    requires_ownership: true
+    fallback_when_no_ownership: "skip (fall through to next priority)"
+
+  defense:
+    priority: 4
+    conditions:
+      - "ownership !== null"
+      - "effectiveOwnership > 0.3"
+      - "adjOpponentCount >= 1"
+    requires_board_state: true
+    requires_ownership: true
+    fallback_when_no_ownership: "skip (fall through to next priority)"
+
+  approach:
+    priority: 4
+    conditions:
+      - "gamePhase === 'opening'"
+      - "spatial === 'corner'"
+      - "adjOpponentCount >= 1"
+    requires_board_state: true
+    requires_ownership: false
+
+  territory_building:
+    priority: 4
+    conditions:
+      - "gamePhase === 'opening'"
+      - "spatial in ['corner', 'side']"
+      - "adjOpponentCount === 0"
+    requires_board_state: true
+    requires_ownership: false
+
+  endgame_counting:
+    priority: 5
+    conditions:
+      - "gamePhase === 'endgame'"
+    requires_board_state: false
+    requires_ownership: false
+
+  close_game:
+    priority: 5
+    conditions:
+      - "abs(winratePct - 50) < 5"
+    requires_board_state: false
+    requires_ownership: false
+
+  good_move:
+    priority: 6
+    conditions:
+      - "moveQuality in ['excellent', 'good']"
+    requires_board_state: false
+    requires_ownership: false
+
+  positional:
+    priority: 7
+    conditions:
+      - "(always matches — fallback)"
+    requires_board_state: false
+    requires_ownership: false
+
+# =============================================================================
+# COACHING TEMPLATES (45 base templates + 7 suffix templates)
+# =============================================================================
+# Each situation has 3 variants to provide variety without randomness.
+# Variant selection: moveNumber % 3 (deterministic).
+# Tone: warm mentor (like Lee Sedol 9p teaching a beginner).
+# =============================================================================
+
+situations:
+
+  # ---------------------------------------------------------------------------
+  # TERRITORY BUILDING (Priority 4d)
+  # Opening moves claiming open territory
+  # ---------------------------------------------------------------------------
+  territory_building:
+    emotion: "positive"
+    templates:
+      - id: "C-TB-01"
+        text: "좋은 자리에 두셨어요! {spatial}에 집을 만들기 좋은 위치입니다. 현재 승률은 {winrate}%예요."
+        slots: [spatial, winrate]
+
+      - id: "C-TB-02"
+        text: "{spatial} 쪽으로 영역을 넓히고 있네요! 지금 {score_lead}집 정도 앞서고 있어요."
+        slots: [spatial, score_lead]
+
+      - id: "C-TB-03"
+        text: "이 {spatial}은(는) 아직 비어 있어서 차지하기 좋아요. 포석이 잘 진행되고 있습니다!"
+        slots: [spatial]
+
+  # ---------------------------------------------------------------------------
+  # APPROACH (Priority 4c)
+  # Opening approach to opponent's corner stone
+  # ---------------------------------------------------------------------------
+  approach:
+    emotion: "neutral"
+    templates:
+      - id: "C-AP-01"
+        text: "상대 돌에 다가가는 수네요. {spatial}에서 걸치기(다가가기)는 포석의 기본이에요!"
+        slots: [spatial]
+
+      - id: "C-AP-02"
+        text: "상대 {spatial} 돌에 접근했어요. 여기서 AI의 추천은 {best_move}이고, 그 다음 흐름은 {pv_short}입니다."
+        slots: [spatial, best_move, pv_short]
+
+      - id: "C-AP-03"
+        text: "좋은 접근이에요! 상대 돌 가까이에 두면서 서로의 영역을 나누기 시작했어요."
+        slots: []
+
+  # ---------------------------------------------------------------------------
+  # ATTACK (Priority 3b)
+  # Adjacent opponent group has 2-3 liberties
+  # ---------------------------------------------------------------------------
+  attack:
+    emotion: "positive"
+    templates:
+      - id: "C-AT-01"
+        text: "공격적인 수입니다! 상대 돌의 활로가 {opponent_liberties}개밖에 안 남았어요. 계속 압박해 보세요!"
+        slots: [opponent_liberties]
+
+      - id: "C-AT-02"
+        text: "상대 돌이 위험해지고 있어요. 활로가 {opponent_liberties}개뿐이에요. 승률은 {winrate}%입니다."
+        slots: [opponent_liberties, winrate]
+
+      - id: "C-AT-03"
+        text: "좋은 공격이에요! 상대 돌을 몰아붙이고 있습니다. 이렇게 활로를 줄여가는 게 중요해요."
+        slots: []
+
+  # ---------------------------------------------------------------------------
+  # ESCAPE (Priority 3c)
+  # Own group in danger (few liberties, surrounded)
+  # ---------------------------------------------------------------------------
+  escape:
+    emotion: "cautionary"
+    templates:
+      - id: "C-ES-01"
+        text: "우리 돌이 위험해요! 활로가 {liberties}개밖에 안 남았어요. 도망가거나 연결할 곳을 찾아야 해요."
+        slots: [liberties]
+
+      - id: "C-ES-02"
+        text: "조심하세요! 우리 돌이 둘러싸이고 있어요. 활로가 {liberties}개 남았으니 안전한 길을 찾아보세요."
+        slots: [liberties]
+
+      - id: "C-ES-03"
+        text: "긴급한 상황이에요. 우리 돌의 활로가 적어서 잡힐 수도 있어요. AI는 {best_move}을(를) 추천해요."
+        slots: [liberties, best_move]
+
+  # ---------------------------------------------------------------------------
+  # CONNECTION (Priority 3d)
+  # Connecting two friendly groups
+  # ---------------------------------------------------------------------------
+  connection:
+    emotion: "positive"
+    templates:
+      - id: "C-CN-01"
+        text: "돌을 잘 연결했어요! 연결하면 더 튼튼해져요. 승률은 {winrate}%입니다."
+        slots: [winrate]
+
+      - id: "C-CN-02"
+        text: "좋은 연결이에요! 두 돌 그룹을 이으면 훨씬 안전하고 강해집니다."
+        slots: []
+
+      - id: "C-CN-03"
+        text: "우리 돌끼리 연결했네요. 이렇게 이어지면 상대가 끊기 어려워져요. 잘하고 있어요!"
+        slots: []
+
+  # ---------------------------------------------------------------------------
+  # INVASION (Priority 4a)
+  # Playing into opponent's territory
+  # ---------------------------------------------------------------------------
+  invasion:
+    emotion: "neutral"
+    templates:
+      - id: "C-IN-01"
+        text: "상대 영역에 침입하는 수입니다! 대담한 선택이에요. 현재 승률은 {winrate}%예요."
+        slots: [winrate]
+
+      - id: "C-IN-02"
+        text: "상대 쪽에 들어갔어요! 침입은 위험하지만, 성공하면 큰 이득이에요. AI 추천은 {best_move}입니다."
+        slots: [best_move]
+
+      - id: "C-IN-03"
+        text: "과감한 침입이에요! 상대 영역을 줄이려는 좋은 시도입니다. 이제 살아남는 게 중요해요."
+        slots: []
+
+  # ---------------------------------------------------------------------------
+  # DEFENSE (Priority 4b)
+  # Protecting own territory from nearby opponent
+  # ---------------------------------------------------------------------------
+  defense:
+    emotion: "neutral"
+    templates:
+      - id: "C-DF-01"
+        text: "우리 영역을 잘 지키고 있어요! 상대가 가까이 왔으니 방어가 중요합니다."
+        slots: []
+
+      - id: "C-DF-02"
+        text: "좋은 수비예요. 우리 집을 튼튼하게 만들고 있어요. 승률은 {winrate}%입니다."
+        slots: [winrate]
+
+      - id: "C-DF-03"
+        text: "영역 방어가 잘 되고 있어요. 상대의 침입에 대비하는 건 아주 중요한 습관이에요!"
+        slots: []
+
+  # ---------------------------------------------------------------------------
+  # CAPTURE (Priority 3a)
+  # Adjacent opponent group in atari (1 liberty)
+  # ---------------------------------------------------------------------------
+  capture:
+    emotion: "positive"
+    templates:
+      - id: "C-CP-01"
+        text: "상대 돌을 잡을 수 있어요! 활로가 1개밖에 안 남았어요. {capture_count}개의 돌을 따낼 수 있습니다!"
+        slots: [capture_count]
+
+      - id: "C-CP-02"
+        text: "단수(활로 1개)에요! 상대 돌 {capture_count}개를 잡을 수 있는 좋은 기회예요!"
+        slots: [capture_count]
+
+      - id: "C-CP-03"
+        text: "상대 돌을 잡을 기회입니다! 승률 {winrate}%로 유리한 상황이에요."
+        slots: [winrate]
+
+  # ---------------------------------------------------------------------------
+  # ENDGAME COUNTING (Priority 5a)
+  # Endgame phase moves
+  # ---------------------------------------------------------------------------
+  endgame_counting:
+    emotion: "neutral"
+    templates:
+      - id: "C-EC-01"
+        text: "끝내기에 들어왔어요. 이제 한 집 한 집이 중요합니다! 현재 {score_lead}집 차이예요."
+        slots: [score_lead]
+
+      - id: "C-EC-02"
+        text: "끝내기 단계입니다. 경계선을 잘 마무리하면 승리가 가까워져요. 승률 {winrate}%!"
+        slots: [winrate]
+
+      - id: "C-EC-03"
+        text: "마무리 단계예요! AI는 {best_move}을(를) 추천해요. 남은 곳을 하나씩 챙겨보세요."
+        slots: [best_move]
+
+  # ---------------------------------------------------------------------------
+  # BRILLIANT MOVE (Priority 1a)
+  # AI-unexpected best move
+  # ---------------------------------------------------------------------------
+  brilliant_move:
+    emotion: "positive"
+    templates:
+      - id: "C-BR-01"
+        text: "와, 묘수입니다! AI도 예상하지 못한 뛰어난 수예요! 정말 대단해요!"
+        slots: []
+
+      - id: "C-BR-02"
+        text: "놀라운 수입니다! 이런 수는 프로 기사도 칭찬할 만해요. 승률 {winrate}%로 최고의 선택이에요!"
+        slots: [winrate]
+
+      - id: "C-BR-03"
+        text: "멋진 발견이에요! AI의 첫 번째 후보가 아니었는데, 깊이 읽어보니 최선이었어요. 감각이 좋으시네요!"
+        slots: []
+
+  # ---------------------------------------------------------------------------
+  # GOOD MOVE (Priority 6)
+  # Positive move quality (excellent or good)
+  # ---------------------------------------------------------------------------
+  good_move:
+    emotion: "positive"
+    templates:
+      - id: "C-GM-01"
+        text: "좋은 수입니다! AI 추천과 같은 자리에 두셨어요. 승률 {winrate}%!"
+        slots: [winrate]
+
+      - id: "C-GM-02"
+        text: "잘 두셨어요! 이 수는 AI가 가장 추천하는 수입니다. 현재 {score_lead}집 앞서고 있어요."
+        slots: [score_lead]
+
+      - id: "C-GM-03"
+        text: "좋은 선택이에요! 이렇게 두면 흐름이 좋아요. 다음은 {pv_short} 방향으로 진행될 수 있어요."
+        slots: [pv_short]
+
+  # ---------------------------------------------------------------------------
+  # MISTAKE (Priority 1b)
+  # Significant winrate loss (blunder or mistake)
+  # ---------------------------------------------------------------------------
+  mistake:
+    emotion: "encouraging"
+    templates:
+      - id: "C-MK-01"
+        text: "이 수는 조금 아쉬워요. 승률이 {winrate_delta}% 떨어졌어요. 하지만 아직 기회는 있으니 걱정 마세요!"
+        slots: [winrate_delta]
+
+      - id: "C-MK-02"
+        text: "여기서는 {best_move}이(가) 더 좋았을 거예요. 승률이 {winrate_delta}% 변했지만, 바둑은 끝날 때까지 모르는 거예요!"
+        slots: [best_move, winrate_delta]
+
+      - id: "C-MK-03"
+        text: "실수는 배움의 시작이에요! AI 추천은 {best_move}이었어요. 다음에는 이런 자리를 살펴보세요."
+        slots: [best_move]
+
+  # ---------------------------------------------------------------------------
+  # MOMENTUM SHIFT (Priority 2)
+  # Winrate crosses 50% boundary
+  # ---------------------------------------------------------------------------
+  momentum_shift:
+    emotion: "positive"
+    templates:
+      - id: "C-MS-01"
+        text: "흐름이 바뀌었어요! 승률이 {winrate}%로 변했습니다. 중요한 전환점이에요!"
+        slots: [winrate]
+
+      - id: "C-MS-02"
+        text: "국면이 전환되고 있어요! 현재 승률 {winrate}%, {score_lead}집 차이입니다."
+        slots: [winrate, score_lead]
+
+      - id: "C-MS-03"
+        text: "판세가 움직이고 있어요. 이런 순간에 집중하는 게 중요합니다! 승률 {winrate}%."
+        slots: [winrate]
+
+  # ---------------------------------------------------------------------------
+  # CLOSE GAME (Priority 5b)
+  # Winrate near 50%
+  # ---------------------------------------------------------------------------
+  close_game:
+    emotion: "neutral"
+    templates:
+      - id: "C-CG-01"
+        text: "팽팽한 접전이에요! 승률 {winrate}%로 어느 쪽도 안심할 수 없어요. 한 수 한 수가 중요합니다!"
+        slots: [winrate]
+
+      - id: "C-CG-02"
+        text: "아주 비슷한 대국이에요. {score_lead}집 차이밖에 안 나요. 집중해서 최선을 다하세요!"
+        slots: [score_lead]
+
+      - id: "C-CG-03"
+        text: "호각세! 양쪽 다 승부를 걸 수 있는 상황이에요. AI 추천은 {best_move}입니다."
+        slots: [best_move]
+
+  # ---------------------------------------------------------------------------
+  # POSITIONAL (Priority 7 - Fallback)
+  # No specific tactical situation detected
+  # ---------------------------------------------------------------------------
+  positional:
+    emotion: "neutral"
+    templates:
+      - id: "C-PS-01"
+        text: "{game_phase} 단계입니다. 현재 승률 {winrate}%, {score_lead}집 차이예요."
+        slots: [game_phase, winrate, score_lead]
+
+      - id: "C-PS-02"
+        text: "차분한 진행이에요. 현재 승률은 {winrate}%이고, AI는 {best_move}을(를) 추천해요."
+        slots: [game_phase, winrate, best_move]
+
+      - id: "C-PS-03"
+        text: "한 수 한 수 착실하게 두고 있어요. 현재 {score_lead}집 차이로 진행 중입니다."
+        slots: [score_lead]
+
+
+# =============================================================================
+# ENCOURAGEMENT SUFFIX TEMPLATES
+# =============================================================================
+# These are appended to the base template when the Encouragement FSM
+# is in a special state. Not standalone — always combined with a base template.
+# =============================================================================
+
+encouragement_suffixes:
+
+  # ---------------------------------------------------------------------------
+  # STREAK SUFFIXES (appended when FSM state === 'streak')
+  # Selection: consecutiveGoodMoves % 3
+  # ---------------------------------------------------------------------------
+  streak:
+    templates:
+      - id: "C-SK-01"
+        text: " 연속 {consecutive_count}수째 좋은 수입니다! 대단해요!"
+        slots: [consecutive_count]
+
+      - id: "C-SK-02"
+        text: " {consecutive_count}수 연속 좋은 선택! 이 흐름을 이어가세요!"
+        slots: [consecutive_count]
+
+      - id: "C-SK-03"
+        text: " 벌써 {consecutive_count}번째 좋은 수! 실력이 느는 게 보여요!"
+        slots: [consecutive_count]
+
+  # ---------------------------------------------------------------------------
+  # RECOVERY SUFFIXES (appended when FSM state === 'recovery')
+  # Selection: moveNumber % 2
+  # ---------------------------------------------------------------------------
+  recovery:
+    templates:
+      - id: "C-RC-01"
+        text: " 이전 실수를 만회하는 좋은 수입니다!"
+        slots: []
+
+      - id: "C-RC-02"
+        text: " 멋진 회복이에요! 이렇게 다시 일어서는 게 중요합니다."
+        slots: []
+
+  # ---------------------------------------------------------------------------
+  # MOMENTUM SUFFIXES (appended when FSM state === 'momentum')
+  # Selection: moveNumber % 2
+  # ---------------------------------------------------------------------------
+  momentum:
+    templates:
+      - id: "C-MO-01"
+        text: " 흐름이 바뀌고 있어요!"
+        slots: []
+
+      - id: "C-MO-02"
+        text: " 이제 주도권을 잡았습니다!"
+        slots: []
+
+
+# =============================================================================
+# RENDERING RULES
+# =============================================================================
+# Step 27 implementer: follow these rules exactly.
+# =============================================================================
+
+rendering_rules:
+  template_selection:
+    method: "moveNumber % templates.length"
+    rationale: "Deterministic variety without randomness"
+
+  suffix_selection:
+    streak: "consecutiveGoodMoves % streak_templates.length"
+    recovery: "moveNumber % recovery_templates.length"
+    momentum: "moveNumber % momentum_templates.length"
+
+  slot_formatting:
+    winrate: "Math.round(parsed.winratePct)"
+    score_lead: "parsed.raw.rootInfo.scoreLead.toFixed(1)"
+    winrate_delta: "Math.round(parsed.winrateDeltaPct)"
+    best_move: "parsed.raw.moveInfos[0].move"
+    pv_short: "parsed.pvShort"
+    game_phase: "{opening: '포석', middle_game: '중반전', endgame: '끝내기'}[parsed.computed.movePhase]"
+    capture_count: "max(group.stones.size) for atari opponent groups"
+    liberties: "ownGroup.liberties.size"
+    opponent_liberties: "min(group.liberties.size) for adj opponent groups with liberties <= 3"
+    consecutive_count: "encouragementFSM.consecutiveGoodMoves"
+    spatial: "{corner: '귀', side: '변', center: '중앙'}[classifySpatial(lastMoveIndex, boardSize)]"
+
+  composition:
+    rule: "base_template.text + (suffix_template.text if FSM state is special)"
+    max_length: "base (1-2 sentences) + suffix (1 short phrase) = max ~80 chars Korean"
+
+  score_lead_sign:
+    rule: "Always show from current player perspective. Positive = ahead, negative = behind."
+    implementation: "Use parsed.raw.rootInfo.scoreLead directly (already current-player perspective)"
+
+  empty_slot_handling:
+    rule: "If a required slot cannot be filled (e.g., no moveInfos), skip that template and use the next variant"
+    implementation: "Check slot availability before rendering. Fall through to next template variant."

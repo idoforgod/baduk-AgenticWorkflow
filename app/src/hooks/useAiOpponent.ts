@@ -18,6 +18,7 @@ import { useEffect } from 'react'
 import { useGameStore } from '../game-engine/store'
 import { extractBestMove } from '../katago-bridge/response-parser'
 import { createRulesEngine } from '../rules-engine'
+import { useAnalysisStore } from './useAnalysisStore'
 import { getKataGoService } from './useKataGo'
 import { useWinRateStore } from './useWinRateStore'
 
@@ -98,6 +99,7 @@ async function tryKataGoMove(s: ReturnType<typeof useGameStore.getState>): Promi
         ? Math.round(rootWinrate * 1000) / 10
         : Math.round((1 - rootWinrate) * 1000) / 10
     useWinRateStore.getState().addDataPoint(s.moveHistory.length, blackWinRate)
+    useAnalysisStore.getState().setAnalysis(result.value, s.moveHistory.length)
 
     // Extract best move from validated response
     const bestMove = extractBestMove(result.value)

@@ -1,0 +1,671 @@
+[
+  {
+    "id": "opening-territory-1",
+    "tactical_situation": "territory_building",
+    "coaching_text": "귀 쪽으로 영역을 넓히고 있네요! 현재 0.5집 차이예요.",
+    "slots": {
+      "winrate": 52,
+      "score_lead": 0.5
+    },
+    "templateId": "C-TB-02",
+    "emotion": "positive",
+    "expected_classification": "territory_building",
+    "match": true
+  },
+  {
+    "id": "opening-territory-2",
+    "tactical_situation": "territory_building",
+    "coaching_text": "좋은 자리에 두셨어요! 귀에 집을 만들기 좋은 위치입니다. 현재 승률은 52%예요.",
+    "slots": {
+      "winrate": 52,
+      "score_lead": 0.5
+    },
+    "templateId": "C-TB-01",
+    "emotion": "positive",
+    "expected_classification": "territory_building",
+    "match": true
+  },
+  {
+    "id": "opening-territory-3",
+    "tactical_situation": "territory_building",
+    "coaching_text": "이 귀은(는) 아직 비어 있어서 차지하기 좋아요. 포석이 잘 진행되고 있습니다!",
+    "slots": {
+      "winrate": 52,
+      "score_lead": 0.5
+    },
+    "templateId": "C-TB-03",
+    "emotion": "positive",
+    "expected_classification": "territory_building",
+    "match": true
+  },
+  {
+    "id": "opening-territory-4",
+    "tactical_situation": "territory_building",
+    "coaching_text": "귀 쪽으로 영역을 넓히고 있네요! 현재 0.5집 차이예요.",
+    "slots": {
+      "winrate": 52,
+      "score_lead": 0.5
+    },
+    "templateId": "C-TB-02",
+    "emotion": "positive",
+    "expected_classification": "territory_building",
+    "match": true
+  },
+  {
+    "id": "opening-territory-5",
+    "tactical_situation": "territory_building",
+    "coaching_text": "좋은 자리에 두셨어요! 귀에 집을 만들기 좋은 위치입니다. 현재 승률은 52%예요.",
+    "slots": {
+      "winrate": 52,
+      "score_lead": 0.5
+    },
+    "templateId": "C-TB-01",
+    "emotion": "positive",
+    "expected_classification": "territory_building",
+    "match": true
+  },
+  {
+    "id": "opening-approach-1",
+    "tactical_situation": "close_game",
+    "coaching_text": "호각세! 양쪽 다 승부를 걸 수 있는 상황이에요. AI 추천은 C6입니다.",
+    "slots": {
+      "winrate": 50,
+      "score_lead": 0
+    },
+    "templateId": "C-CG-03",
+    "emotion": "neutral",
+    "expected_classification": "approach",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces close_game (higher tier) instead of approach"
+  },
+  {
+    "id": "opening-approach-2",
+    "tactical_situation": "close_game",
+    "coaching_text": "아주 비슷한 대국이에요. 0집 차이밖에 안 나요. 집중해서 최선을 다하세요!",
+    "slots": {
+      "winrate": 50,
+      "score_lead": 0
+    },
+    "templateId": "C-CG-02",
+    "emotion": "neutral",
+    "expected_classification": "approach",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces close_game (higher tier) instead of approach"
+  },
+  {
+    "id": "opening-approach-3",
+    "tactical_situation": "close_game",
+    "coaching_text": "팽팽한 접전이에요! 승률 50%로 어느 쪽도 안심할 수 없어요. 한 수 한 수가 중요합니다!",
+    "slots": {
+      "winrate": 50,
+      "score_lead": 0
+    },
+    "templateId": "C-CG-01",
+    "emotion": "neutral",
+    "expected_classification": "approach",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces close_game (higher tier) instead of approach"
+  },
+  {
+    "id": "opening-approach-4",
+    "tactical_situation": "close_game",
+    "coaching_text": "호각세! 양쪽 다 승부를 걸 수 있는 상황이에요. AI 추천은 O17입니다.",
+    "slots": {
+      "winrate": 50,
+      "score_lead": 0
+    },
+    "templateId": "C-CG-03",
+    "emotion": "neutral",
+    "expected_classification": "approach",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces close_game (higher tier) instead of approach"
+  },
+  {
+    "id": "opening-approach-5",
+    "tactical_situation": "close_game",
+    "coaching_text": "아주 비슷한 대국이에요. 0집 차이밖에 안 나요. 집중해서 최선을 다하세요!",
+    "slots": {
+      "winrate": 50,
+      "score_lead": 0
+    },
+    "templateId": "C-CG-02",
+    "emotion": "neutral",
+    "expected_classification": "approach",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces close_game (higher tier) instead of approach"
+  },
+  {
+    "id": "opening-good-1",
+    "tactical_situation": "good_move",
+    "coaching_text": "좋은 선택이에요! 이렇게 두면 흐름이 좋아요. 다음은 K10 방향으로 진행될 수 있어요.",
+    "slots": {
+      "winrate": 58,
+      "score_lead": 2
+    },
+    "templateId": "C-GM-03",
+    "emotion": "positive",
+    "expected_classification": "good_move",
+    "match": true
+  },
+  {
+    "id": "opening-good-2",
+    "tactical_situation": "territory_building",
+    "coaching_text": "변 쪽으로 영역을 넓히고 있네요! 현재 2집 차이예요.",
+    "slots": {
+      "winrate": 58,
+      "score_lead": 2
+    },
+    "templateId": "C-TB-02",
+    "emotion": "positive",
+    "expected_classification": "good_move",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces territory_building (higher tier) instead of good_move"
+  },
+  {
+    "id": "opening-good-3",
+    "tactical_situation": "territory_building",
+    "coaching_text": "좋은 자리에 두셨어요! 변에 집을 만들기 좋은 위치입니다. 현재 승률은 58%예요.",
+    "slots": {
+      "winrate": 58,
+      "score_lead": 2
+    },
+    "templateId": "C-TB-01",
+    "emotion": "positive",
+    "expected_classification": "good_move",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces territory_building (higher tier) instead of good_move"
+  },
+  {
+    "id": "opening-good-4",
+    "tactical_situation": "territory_building",
+    "coaching_text": "이 변은(는) 아직 비어 있어서 차지하기 좋아요. 포석이 잘 진행되고 있습니다!",
+    "slots": {
+      "winrate": 58,
+      "score_lead": 2
+    },
+    "templateId": "C-TB-03",
+    "emotion": "positive",
+    "expected_classification": "good_move",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces territory_building (higher tier) instead of good_move"
+  },
+  {
+    "id": "opening-good-5",
+    "tactical_situation": "territory_building",
+    "coaching_text": "변 쪽으로 영역을 넓히고 있네요! 현재 2집 차이예요.",
+    "slots": {
+      "winrate": 58,
+      "score_lead": 2
+    },
+    "templateId": "C-TB-02",
+    "emotion": "positive",
+    "expected_classification": "good_move",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces territory_building (higher tier) instead of good_move"
+  },
+  {
+    "id": "middle-attack-1",
+    "tactical_situation": "attack",
+    "coaching_text": "공격적인 수입니다! 상대 돌의 활로가 3개밖에 안 남았어요. 계속 압박해 보세요!",
+    "slots": {
+      "winrate": 62,
+      "score_lead": 3
+    },
+    "templateId": "C-AT-01",
+    "emotion": "positive",
+    "expected_classification": "attack",
+    "match": true
+  },
+  {
+    "id": "middle-attack-2",
+    "tactical_situation": "attack",
+    "coaching_text": "좋은 공격이에요! 상대 돌을 몰아붙이고 있습니다. 이렇게 활로를 줄여가는 게 중요해요.",
+    "slots": {
+      "winrate": 62,
+      "score_lead": 3
+    },
+    "templateId": "C-AT-03",
+    "emotion": "positive",
+    "expected_classification": "attack",
+    "match": true
+  },
+  {
+    "id": "middle-attack-3",
+    "tactical_situation": "attack",
+    "coaching_text": "상대 돌이 위험해지고 있어요. 활로가 3개뿐이에요. 승률은 62%입니다.",
+    "slots": {
+      "winrate": 62,
+      "score_lead": 3
+    },
+    "templateId": "C-AT-02",
+    "emotion": "positive",
+    "expected_classification": "attack",
+    "match": true
+  },
+  {
+    "id": "middle-attack-4",
+    "tactical_situation": "attack",
+    "coaching_text": "공격적인 수입니다! 상대 돌의 활로가 2개밖에 안 남았어요. 계속 압박해 보세요!",
+    "slots": {
+      "winrate": 62,
+      "score_lead": 3
+    },
+    "templateId": "C-AT-01",
+    "emotion": "positive",
+    "expected_classification": "attack",
+    "match": true
+  },
+  {
+    "id": "middle-escape-1",
+    "tactical_situation": "escape",
+    "coaching_text": "긴급한 상황이에요. 우리 돌의 활로가 적어서 잡힐 수도 있어요. AI는 H8을(를) 추천해요.",
+    "slots": {
+      "winrate": 38,
+      "score_lead": -4
+    },
+    "templateId": "C-ES-03",
+    "emotion": "cautionary",
+    "expected_classification": "escape",
+    "match": true
+  },
+  {
+    "id": "middle-escape-2",
+    "tactical_situation": "escape",
+    "coaching_text": "조심하세요! 우리 돌이 둘러싸이고 있어요. 활로가 0개 남았으니 안전한 길을 찾아보세요.",
+    "slots": {
+      "winrate": 38,
+      "score_lead": -4
+    },
+    "templateId": "C-ES-02",
+    "emotion": "cautionary",
+    "expected_classification": "escape",
+    "match": true
+  },
+  {
+    "id": "middle-escape-3",
+    "tactical_situation": "escape",
+    "coaching_text": "우리 돌이 위험해요! 활로가 0개밖에 안 남았어요. 도망가거나 연결할 곳을 찾아야 해요.",
+    "slots": {
+      "winrate": 38,
+      "score_lead": -4
+    },
+    "templateId": "C-ES-01",
+    "emotion": "cautionary",
+    "expected_classification": "escape",
+    "match": true
+  },
+  {
+    "id": "middle-connection-1",
+    "tactical_situation": "connection",
+    "coaching_text": "돌을 잘 연결했어요! 연결하면 더 튼튼해져요. 승률은 55%입니다.",
+    "slots": {
+      "winrate": 55,
+      "score_lead": 1.5
+    },
+    "templateId": "C-CN-01",
+    "emotion": "positive",
+    "expected_classification": "connection",
+    "match": true
+  },
+  {
+    "id": "middle-connection-2",
+    "tactical_situation": "connection",
+    "coaching_text": "우리 돌끼리 연결했네요. 이렇게 이어지면 상대가 끊기 어려워져요. 잘하고 있어요!",
+    "slots": {
+      "winrate": 55,
+      "score_lead": 1.5
+    },
+    "templateId": "C-CN-03",
+    "emotion": "positive",
+    "expected_classification": "connection",
+    "match": true
+  },
+  {
+    "id": "middle-connection-3",
+    "tactical_situation": "connection",
+    "coaching_text": "좋은 연결이에요! 두 돌 그룹을 이으면 훨씬 안전하고 강해집니다.",
+    "slots": {
+      "winrate": 55,
+      "score_lead": 1.5
+    },
+    "templateId": "C-CN-02",
+    "emotion": "positive",
+    "expected_classification": "connection",
+    "match": true
+  },
+  {
+    "id": "middle-invasion-1",
+    "tactical_situation": "positional",
+    "coaching_text": "한 수 한 수 착실하게 두고 있어요. 현재 1집 차이로 진행 중입니다.",
+    "slots": {
+      "winrate": 45,
+      "score_lead": -1
+    },
+    "templateId": "C-PS-03",
+    "emotion": "neutral",
+    "expected_classification": "invasion",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces positional (higher tier) instead of invasion"
+  },
+  {
+    "id": "middle-invasion-2",
+    "tactical_situation": "positional",
+    "coaching_text": "차분한 진행이에요. 현재 승률은 45%이고, AI는 C14을(를) 추천해요.",
+    "slots": {
+      "winrate": 45,
+      "score_lead": -1
+    },
+    "templateId": "C-PS-02",
+    "emotion": "neutral",
+    "expected_classification": "invasion",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces positional (higher tier) instead of invasion"
+  },
+  {
+    "id": "middle-invasion-3",
+    "tactical_situation": "positional",
+    "coaching_text": "중반전 단계입니다. 현재 승률 45%, 1집 차이예요.",
+    "slots": {
+      "winrate": 45,
+      "score_lead": -1
+    },
+    "templateId": "C-PS-01",
+    "emotion": "neutral",
+    "expected_classification": "invasion",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces positional (higher tier) instead of invasion"
+  },
+  {
+    "id": "middle-defense-1",
+    "tactical_situation": "defense",
+    "coaching_text": "우리 영역을 잘 지키고 있어요! 상대가 가까이 왔으니 방어가 중요합니다.",
+    "slots": {
+      "winrate": 60,
+      "score_lead": 2.5
+    },
+    "templateId": "C-DF-01",
+    "emotion": "neutral",
+    "expected_classification": "defense",
+    "match": true
+  },
+  {
+    "id": "middle-defense-2",
+    "tactical_situation": "defense",
+    "coaching_text": "영역 방어가 잘 되고 있어요. 상대의 침입에 대비하는 건 아주 중요한 습관이에요!",
+    "slots": {
+      "winrate": 60,
+      "score_lead": 2.5
+    },
+    "templateId": "C-DF-03",
+    "emotion": "neutral",
+    "expected_classification": "defense",
+    "match": true
+  },
+  {
+    "id": "middle-defense-3",
+    "tactical_situation": "defense",
+    "coaching_text": "좋은 수비예요. 우리 집을 튼튼하게 만들고 있어요. 승률은 60%입니다.",
+    "slots": {
+      "winrate": 60,
+      "score_lead": 2.5
+    },
+    "templateId": "C-DF-02",
+    "emotion": "neutral",
+    "expected_classification": "defense",
+    "match": true
+  },
+  {
+    "id": "middle-capture-1",
+    "tactical_situation": "capture",
+    "coaching_text": "단수(활로 1개)에요! 상대 돌 1개를 잡을 수 있는 좋은 기회예요!",
+    "slots": {
+      "winrate": 65,
+      "score_lead": 4
+    },
+    "templateId": "C-CP-02",
+    "emotion": "positive",
+    "expected_classification": "capture",
+    "match": true
+  },
+  {
+    "id": "middle-capture-2",
+    "tactical_situation": "capture",
+    "coaching_text": "상대 돌을 잡을 수 있어요! 활로가 1개밖에 안 남았어요. 1개의 돌을 따낼 수 있습니다!",
+    "slots": {
+      "winrate": 65,
+      "score_lead": 4
+    },
+    "templateId": "C-CP-01",
+    "emotion": "positive",
+    "expected_classification": "capture",
+    "match": true
+  },
+  {
+    "id": "middle-brilliant-1",
+    "tactical_situation": "brilliant_move",
+    "coaching_text": "멋진 발견이에요! AI의 첫 번째 후보가 아니었는데, 깊이 읽어보니 최선이었어요. 감각이 좋으시네요!",
+    "slots": {
+      "winrate": 70,
+      "score_lead": 6
+    },
+    "templateId": "C-BR-03",
+    "emotion": "positive",
+    "expected_classification": "brilliant_move",
+    "match": true
+  },
+  {
+    "id": "middle-mistake-1",
+    "tactical_situation": "mistake",
+    "coaching_text": "여기서는 D5이(가) 더 좋았을 거예요. 승률이 10% 변했지만, 바둑은 끝날 때까지 모르는 거예요!",
+    "slots": {
+      "winrate": 40,
+      "score_lead": -3
+    },
+    "templateId": "C-MK-02",
+    "emotion": "encouraging",
+    "expected_classification": "mistake",
+    "match": true
+  },
+  {
+    "id": "endgame-counting-1",
+    "tactical_situation": "endgame_counting",
+    "coaching_text": "끝내기 단계입니다. 경계선을 잘 마무리하면 승리가 가까워져요. 승률 55%!",
+    "slots": {
+      "winrate": 55,
+      "score_lead": 2
+    },
+    "templateId": "C-EC-02",
+    "emotion": "neutral",
+    "expected_classification": "endgame_counting",
+    "match": true
+  },
+  {
+    "id": "endgame-counting-2",
+    "tactical_situation": "endgame_counting",
+    "coaching_text": "끝내기에 들어왔어요. 이제 한 집 한 집이 중요합니다! 현재 2집 차이예요.",
+    "slots": {
+      "winrate": 55,
+      "score_lead": 2
+    },
+    "templateId": "C-EC-01",
+    "emotion": "neutral",
+    "expected_classification": "endgame_counting",
+    "match": true
+  },
+  {
+    "id": "endgame-counting-3",
+    "tactical_situation": "endgame_counting",
+    "coaching_text": "마무리 단계예요! AI는 A5을(를) 추천해요. 남은 곳을 하나씩 챙겨보세요.",
+    "slots": {
+      "winrate": 55,
+      "score_lead": 2
+    },
+    "templateId": "C-EC-03",
+    "emotion": "neutral",
+    "expected_classification": "endgame_counting",
+    "match": true
+  },
+  {
+    "id": "endgame-counting-4",
+    "tactical_situation": "endgame_counting",
+    "coaching_text": "끝내기 단계입니다. 경계선을 잘 마무리하면 승리가 가까워져요. 승률 55%!",
+    "slots": {
+      "winrate": 55,
+      "score_lead": 2
+    },
+    "templateId": "C-EC-02",
+    "emotion": "neutral",
+    "expected_classification": "endgame_counting",
+    "match": true
+  },
+  {
+    "id": "endgame-counting-5",
+    "tactical_situation": "endgame_counting",
+    "coaching_text": "끝내기에 들어왔어요. 이제 한 집 한 집이 중요합니다! 현재 2집 차이예요.",
+    "slots": {
+      "winrate": 55,
+      "score_lead": 2
+    },
+    "templateId": "C-EC-01",
+    "emotion": "neutral",
+    "expected_classification": "endgame_counting",
+    "match": true
+  },
+  {
+    "id": "endgame-momentum-1",
+    "tactical_situation": "momentum_shift",
+    "coaching_text": "판세가 움직이고 있어요. 이런 순간에 집중하는 게 중요합니다! 승률 58%. 이제 주도권을 잡았습니다!",
+    "slots": {
+      "winrate": 58,
+      "score_lead": 1.6
+    },
+    "templateId": "C-MS-03",
+    "emotion": "positive",
+    "expected_classification": "momentum_shift",
+    "match": true
+  },
+  {
+    "id": "endgame-momentum-2",
+    "tactical_situation": "momentum_shift",
+    "coaching_text": "국면이 전환되고 있어요! 현재 승률 42%, 1.6집 차이입니다.",
+    "slots": {
+      "winrate": 42,
+      "score_lead": -1.6
+    },
+    "templateId": "C-MS-02",
+    "emotion": "positive",
+    "expected_classification": "momentum_shift",
+    "match": true
+  },
+  {
+    "id": "endgame-momentum-3",
+    "tactical_situation": "momentum_shift",
+    "coaching_text": "흐름이 바뀌었어요! 승률이 63%로 변했습니다. 중요한 전환점이에요! 이제 주도권을 잡았습니다!",
+    "slots": {
+      "winrate": 63,
+      "score_lead": 2.6
+    },
+    "templateId": "C-MS-01",
+    "emotion": "positive",
+    "expected_classification": "momentum_shift",
+    "match": true
+  },
+  {
+    "id": "endgame-close-1",
+    "tactical_situation": "endgame_counting",
+    "coaching_text": "끝내기에 들어왔어요. 이제 한 집 한 집이 중요합니다! 현재 0.1집 차이예요.",
+    "slots": {
+      "winrate": 51,
+      "score_lead": 0.1
+    },
+    "templateId": "C-EC-01",
+    "emotion": "neutral",
+    "expected_classification": "close_game",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces endgame_counting (higher tier) instead of close_game"
+  },
+  {
+    "id": "endgame-close-2",
+    "tactical_situation": "endgame_counting",
+    "coaching_text": "마무리 단계예요! AI는 N7을(를) 추천해요. 남은 곳을 하나씩 챙겨보세요.",
+    "slots": {
+      "winrate": 48,
+      "score_lead": -0.4
+    },
+    "templateId": "C-EC-03",
+    "emotion": "neutral",
+    "expected_classification": "close_game",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces endgame_counting (higher tier) instead of close_game"
+  },
+  {
+    "id": "endgame-close-3",
+    "tactical_situation": "endgame_counting",
+    "coaching_text": "끝내기 단계입니다. 경계선을 잘 마무리하면 승리가 가까워져요. 승률 52%!",
+    "slots": {
+      "winrate": 52,
+      "score_lead": 0.4
+    },
+    "templateId": "C-EC-02",
+    "emotion": "neutral",
+    "expected_classification": "close_game",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces endgame_counting (higher tier) instead of close_game"
+  },
+  {
+    "id": "endgame-good-1",
+    "tactical_situation": "endgame_counting",
+    "coaching_text": "마무리 단계예요! AI는 A10을(를) 추천해요. 남은 곳을 하나씩 챙겨보세요.",
+    "slots": {
+      "winrate": 57,
+      "score_lead": 2.5
+    },
+    "templateId": "C-EC-03",
+    "emotion": "neutral",
+    "expected_classification": "good_move",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces endgame_counting (higher tier) instead of good_move"
+  },
+  {
+    "id": "endgame-good-2",
+    "tactical_situation": "endgame_counting",
+    "coaching_text": "끝내기 단계입니다. 경계선을 잘 마무리하면 승리가 가까워져요. 승률 57%!",
+    "slots": {
+      "winrate": 57,
+      "score_lead": 2.5
+    },
+    "templateId": "C-EC-02",
+    "emotion": "neutral",
+    "expected_classification": "good_move",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces endgame_counting (higher tier) instead of good_move"
+  },
+  {
+    "id": "endgame-good-3",
+    "tactical_situation": "endgame_counting",
+    "coaching_text": "끝내기에 들어왔어요. 이제 한 집 한 집이 중요합니다! 현재 2.5집 차이예요.",
+    "slots": {
+      "winrate": 57,
+      "score_lead": 2.5
+    },
+    "templateId": "C-EC-01",
+    "emotion": "neutral",
+    "expected_classification": "good_move",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces endgame_counting (higher tier) instead of good_move"
+  },
+  {
+    "id": "endgame-positional-1",
+    "tactical_situation": "endgame_counting",
+    "coaching_text": "마무리 단계예요! AI는 K10을(를) 추천해요. 남은 곳을 하나씩 챙겨보세요.",
+    "slots": {
+      "winrate": 50,
+      "score_lead": 0
+    },
+    "templateId": "C-EC-03",
+    "emotion": "neutral",
+    "expected_classification": "positional",
+    "match": false,
+    "deviation_reason": "Priority chain: classifier produces endgame_counting (higher tier) instead of positional"
+  }
+]
