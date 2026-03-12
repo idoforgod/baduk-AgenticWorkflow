@@ -1,3 +1,8 @@
+---
+related_agents: [template-designer, template-engineer]
+cluster: content
+---
+
 # Translator Agent Memory
 
 ## Project Context

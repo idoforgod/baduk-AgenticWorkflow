@@ -1,3 +1,8 @@
+---
+related_agents: [domain-expert, schema-designer, strategy-planner]
+cluster: architecture
+---
+
 # Architect Agent Memory
 
 ## Baduk Platform Architecture Key Decisions

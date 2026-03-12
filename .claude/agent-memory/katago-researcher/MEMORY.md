@@ -1,3 +1,8 @@
+---
+related_agents: [katago-integrator]
+cluster: katago
+---
+
 # KataGo Researcher Memory
 
 ## Key Facts (verified)

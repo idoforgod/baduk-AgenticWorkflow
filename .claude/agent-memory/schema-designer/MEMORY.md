@@ -1,3 +1,8 @@
+---
+related_agents: [architect, domain-expert, strategy-planner]
+cluster: architecture
+---
+
 # Schema Designer Agent Memory
 
 ## Project: Baduk Platform

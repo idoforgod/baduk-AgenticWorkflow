@@ -30,6 +30,7 @@ from _context_lib import (
     extract_remediations,
     validate_translation_output,
     check_glossary_freshness,
+    verify_glossary_coverage,
     verify_pacs_arithmetic,
     validate_review_sequence,
     parse_review_verdict,
@@ -55,6 +56,10 @@ def main():
     parser.add_argument(
         "--check-pacs", action="store_true",
         help="Also validate translation pACS arithmetic (T9)"
+    )
+    parser.add_argument(
+        "--check-glossary-coverage", action="store_true",
+        help="Also verify glossary term coverage in translation (T10)"
     )
     args = parser.parse_args()
 
@@ -135,6 +140,25 @@ def main():
             output["warnings"].append(seq_warning)
             if not seq_valid:
                 output["valid"] = False
+
+    # Optional: T10 — glossary coverage verification (anti-hallucination Proposal 3)
+    if args.check_glossary_coverage:
+        gc_valid, gc_pct, gc_warnings, gc_details = verify_glossary_coverage(
+            project_dir, step
+        )
+        output["glossary_coverage_valid"] = gc_valid
+        output["glossary_coverage_pct"] = gc_pct
+        output["glossary_coverage_details"] = gc_details
+        for w in gc_warnings:
+            output["warnings"].append(w)
+        if not gc_valid:
+            output["valid"] = False
+            existing = output.get("remediations", {})
+            existing["T10"] = (
+                f"Glossary coverage {gc_pct}% < 80% — re-run @translator with "
+                f"explicit glossary reference. Missing terms listed in details."
+            )
+            output["remediations"] = existing
 
     print(json.dumps(output, indent=2, ensure_ascii=False))
 

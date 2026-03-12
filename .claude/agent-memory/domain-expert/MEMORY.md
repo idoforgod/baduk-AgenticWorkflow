@@ -1,3 +1,8 @@
+---
+related_agents: [architect, schema-designer, strategy-planner]
+cluster: architecture
+---
+
 # Domain Expert Agent Memory
 
 ## Key Decisions

@@ -399,6 +399,16 @@ def _build_recovery_output(source, latest_path, summary, sot_warning, snapshot_a
                 for dh in diagnosis_hints[:3]:
                     output_lines.append(f"  - {dh}")
 
+            # P1-3: Suggest relevant past sessions for current workflow step
+            _ap = read_autopilot_state(project_dir) if project_dir else None
+            _cur_step = _ap.get("current_step") if _ap else None
+            session_hints = _suggest_relevant_sessions(recent, _cur_step)
+            if session_hints:
+                output_lines.append("")
+                output_lines.append("■ 관련 과거 세션 (현재 Step 참조):")
+                for sh in session_hints:
+                    output_lines.append(f"  - {sh}")
+
         if os.path.isdir(sessions_dir):
             output_lines.append(f"■ 세션 아카이브: {sessions_dir}")
 
@@ -594,6 +604,40 @@ def _extract_recent_diagnosis_patterns(recent_sessions):
             )
         if len(results) >= 3:
             break
+    return results[:3]
+
+
+def _suggest_relevant_sessions(recent_sessions, current_step=None):
+    """P1-3: Suggest past success sessions relevant to current workflow step.
+
+    Matches Knowledge Archive sessions by tags containing step-related keywords
+    or matching workflow step numbers. Enables cross-session knowledge reuse.
+
+    P1 Compliance: Deterministic tag matching from structured JSON data.
+    Returns: list of human-readable strings (max 3).
+    """
+    if not current_step or not recent_sessions:
+        return []
+
+    step_str = str(current_step)
+    results = []
+
+    for session in reversed(recent_sessions):
+        tags = session.get("tags", [])
+        if not isinstance(tags, list):
+            continue
+        date = session.get("date", "?")
+        summary = session.get("summary", "")[:80]
+
+        # Match sessions that reference this step or related steps
+        for tag in tags:
+            tag_lower = str(tag).lower()
+            if (f"step-{step_str}" in tag_lower
+                    or f"step_{step_str}" in tag_lower
+                    or f"step{step_str}" in tag_lower):
+                results.append(f"[{date}] {summary}")
+                break
+
     return results[:3]
 
 

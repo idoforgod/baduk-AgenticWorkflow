@@ -33,6 +33,7 @@ from _context_lib import (
     calculate_pacs_delta,
     validate_review_sequence,
     verify_pacs_arithmetic,
+    verify_review_references,
 )
 
 
@@ -55,6 +56,10 @@ def main():
     parser.add_argument(
         "--check-pacs-arithmetic", action="store_true",
         help="Also validate pACS arithmetic (T9 — generator + reviewer)"
+    )
+    parser.add_argument(
+        "--check-references", action="store_true",
+        help="Also verify file/line references in review issues (R6 — phantom detection)"
     )
     args = parser.parse_args()
 
@@ -145,6 +150,24 @@ def main():
             output["warnings"].append(seq_warning)
             if not seq_valid:
                 output["valid"] = False
+
+    # Optional: R6 — phantom reference detection (anti-hallucination Proposal 2)
+    if args.check_references:
+        ref_valid, ref_warnings, ref_details = verify_review_references(
+            project_dir, step
+        )
+        output["references_valid"] = ref_valid
+        output["reference_details"] = ref_details
+        for w in ref_warnings:
+            output["warnings"].append(w)
+        if not ref_valid:
+            output["valid"] = False
+            existing = output.get("remediations", {})
+            existing["R6"] = (
+                "Phantom references detected in review issues — reviewer cited "
+                "non-existent files or invalid line numbers. Re-review with accurate references."
+            )
+            output["remediations"] = existing
 
     print(json.dumps(output, indent=2, ensure_ascii=False))
 

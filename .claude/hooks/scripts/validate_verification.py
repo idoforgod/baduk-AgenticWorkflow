@@ -27,6 +27,7 @@ import sys
 # Add script directory to path for shared library import
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _context_lib import (
+    audit_verification_claims,
     extract_remediations,
     validate_verification_log,
     verify_pacs_arithmetic,
@@ -48,6 +49,10 @@ def main():
     parser.add_argument(
         "--check-pacs", action="store_true",
         help="Also validate step pACS arithmetic (T9)"
+    )
+    parser.add_argument(
+        "--check-claims", action="store_true",
+        help="Also audit PASS claims against step output (V2 — objective verification)"
     )
     args = parser.parse_args()
 
@@ -87,6 +92,25 @@ def main():
             output["warnings"].append(pacs_warning)
             if not pacs_valid:
                 output["valid"] = False
+
+    # Optional: V2 — objective claim audit (anti-hallucination Proposal 4)
+    if args.check_claims:
+        audit_score, audit_warnings, audit_details = audit_verification_claims(
+            project_dir, step
+        )
+        output["audit_score"] = audit_score
+        output["audit_details"] = audit_details
+        for w in audit_warnings:
+            output["warnings"].append(w)
+        if audit_score < 70:
+            output["valid"] = False
+            existing = output.get("remediations", {})
+            existing["V2"] = (
+                f"Verification audit score {audit_score}% < 70% — "
+                f"PASS claims cannot be objectively verified against step output. "
+                f"Re-verify criteria with specific evidence references."
+            )
+            output["remediations"] = existing
 
     print(json.dumps(output, indent=2, ensure_ascii=False))
 

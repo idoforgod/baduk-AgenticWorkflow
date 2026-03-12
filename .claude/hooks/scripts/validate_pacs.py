@@ -41,6 +41,7 @@ import sys
 # Add script directory to path for shared library import
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _context_lib import (
+    compute_objective_pacs,
     extract_remediations,
     validate_pacs_output,
     validate_step_output,
@@ -67,6 +68,10 @@ def main():
     parser.add_argument(
         "--check-l0", action="store_true",
         help="Also validate step output via L0 Anti-Skip Guard"
+    )
+    parser.add_argument(
+        "--check-objective", action="store_true",
+        help="Also compute objective pACS bound and detect inflation"
     )
     args = parser.parse_args()
 
@@ -115,6 +120,33 @@ def main():
         if l0_remediations:
             existing = output.get("remediations", {})
             existing.update(l0_remediations)
+            output["remediations"] = existing
+
+    # Optional: Objective pACS bound (anti-hallucination Proposal 1)
+    if args.check_objective:
+        obj_result = compute_objective_pacs(project_dir, step, pacs_type=args.type)
+        output["objective_pacs"] = {
+            "f": obj_result["objective_f"],
+            "c": obj_result["objective_c"],
+            "l": obj_result["objective_l"],
+            "score": obj_result["objective_pacs"],
+            "llm_pacs": obj_result["llm_pacs"],
+            "delta": obj_result["delta"],
+            "inflation_detected": obj_result["inflation_detected"],
+        }
+        if obj_result["inflation_detected"]:
+            output["valid"] = False
+        for w in obj_result["warnings"]:
+            output["warnings"].append(w)
+        output["objective_details"] = obj_result["details"]
+        # Add OBJ remediation
+        if obj_result["inflation_detected"]:
+            existing = output.get("remediations", {})
+            existing["OBJ"] = (
+                f"pACS inflation detected — LLM score exceeds objective bound by "
+                f"{obj_result['delta']} points. Re-evaluate F/C/L scores honestly "
+                f"or improve the step output to match the claimed quality."
+            )
             output["remediations"] = existing
 
     print(json.dumps(output, indent=2, ensure_ascii=False))
