@@ -21,13 +21,13 @@ import type { WinRateGraphProps } from './types'
  * Renders a line chart of Black's win rate over the course of the game.
  * The 50% line is highlighted as the equilibrium point.
  */
-export function WinRateGraph({ data, width = 400, height = 150, currentMove }: WinRateGraphProps) {
+export function WinRateGraph({ data, width, height = 150, currentMove }: WinRateGraphProps) {
   if (data.length === 0) {
     return (
       <div
         data-testid="winrate-graph-empty"
         style={{
-          width,
+          width: width ?? '100%',
           height,
           display: 'flex',
           alignItems: 'center',
@@ -46,7 +46,7 @@ export function WinRateGraph({ data, width = 400, height = 150, currentMove }: W
   }))
 
   return (
-    <div data-testid="winrate-graph" style={{ width, height }}>
+    <div data-testid="winrate-graph" style={{ width: width ?? '100%', height }}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eee" />

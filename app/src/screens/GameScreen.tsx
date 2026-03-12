@@ -171,7 +171,7 @@ export function GameScreen() {
   const displayGameId = id ?? gameId
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Back navigation */}
       <div className="mb-4">
         <Button variant="ghost" size="sm" asChild>
@@ -205,115 +205,11 @@ export function GameScreen() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
-        {/* Left column: board + controls */}
-        <div className="space-y-4">
-          {/* Player info — White (top) */}
-          <PlayerInfo
-            color="W"
-            name="AI Opponent"
-            captures={captures.white}
-            isActive={isPlaying && currentPlayer === 'W'}
-            timeLeft="3:00"
-          />
-
-          {/* Board */}
-          <div className="flex justify-center">
-            <Board
-              boardSize={boardSize}
-              board={board}
-              onIntersectionClick={(index) => playMove(index)}
-              lastMoveIndex={lastMoveIndex ?? undefined}
-              previewColor={currentPlayer === 'B' ? 'black' : 'white'}
-              interactive={isPlaying && currentPlayer === 'B'}
-              candidates={candidates}
-            />
-          </div>
-
-          {/* Player info — Black (bottom) */}
-          <PlayerInfo
-            color="B"
-            name="You"
-            captures={captures.black}
-            isActive={isPlaying && currentPlayer === 'B'}
-            timeLeft="3:00"
-          />
-
-          {/* Game controls */}
-          {isPlaying && (
-            <div className="flex gap-2 justify-center flex-wrap">
-              <Button variant="outline" size="sm" onClick={() => pass()} data-testid="pass-button">
-                <SkipForward size={16} />
-                Pass
-              </Button>
-
-              <Button variant="outline" size="sm" onClick={() => undo()} data-testid="undo-button">
-                <RotateCcw size={16} />
-                Undo
-              </Button>
-
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => resign(currentPlayer)}
-                data-testid="resign-button"
-              >
-                <Flag size={16} />
-                Resign
-              </Button>
-            </div>
-          )}
-
-          {!isPlaying && !isFinished && (
-            <div className="text-center py-4 text-sm" style={{ color: 'var(--text-muted)' }}>
-              No active game. Start a{' '}
-              <Link to="/quick-go" style={{ color: 'var(--accent)' }}>
-                Quick Go
-              </Link>{' '}
-              game.
-            </div>
-          )}
-        </div>
-
-        {/* Right column: coaching + win rate + AI analysis + move list + info */}
-        <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_260px] gap-4">
+        {/* Left column: AI Coach + AI Analysis */}
+        <div className="space-y-4 order-2 lg:order-1">
           {/* AI Coach Panel — coaching messages */}
           {isPlaying && <CoachPanel messages={coachingMessages} />}
-
-          {/* Win Rate Graph — live win rate per move */}
-          {winRateHistory.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center justify-between">
-                  <span>Win Rate</span>
-                  {currentWinRate !== null && (
-                    <span
-                      className="text-xs font-bold px-2 py-0.5 rounded-full"
-                      style={{
-                        backgroundColor:
-                          currentWinRate >= 55
-                            ? 'rgba(34, 197, 94, 0.15)'
-                            : currentWinRate <= 45
-                              ? 'rgba(239, 68, 68, 0.15)'
-                              : 'rgba(59, 130, 246, 0.15)',
-                        color:
-                          currentWinRate >= 55
-                            ? 'var(--success)'
-                            : currentWinRate <= 45
-                              ? 'var(--danger)'
-                              : 'var(--accent)',
-                      }}
-                    >
-                      B {currentWinRate.toFixed(1)}%
-                    </span>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <WinRateGraph data={winRateHistory} height={120} currentMove={moveHistory.length} />
-              </CardContent>
-            </Card>
-          )}
 
           {/* Policy Network — AI Candidate Moves */}
           <Card>
@@ -382,7 +278,7 @@ export function GameScreen() {
                       >
                         {c.move}
                       </span>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex justify-between">
                           <span style={{ color: 'var(--text-secondary)' }}>Win {c.winRate}%</span>
                           <span style={{ color: 'var(--text-muted)' }}>
@@ -424,6 +320,113 @@ export function GameScreen() {
               )}
             </CardContent>
           </Card>
+        </div>
+
+        {/* Center column: board + controls */}
+        <div className="space-y-4 order-1 lg:order-2">
+          {/* Player info — White (top) */}
+          <PlayerInfo
+            color="W"
+            name="AI Opponent"
+            captures={captures.white}
+            isActive={isPlaying && currentPlayer === 'W'}
+            timeLeft="3:00"
+          />
+
+          {/* Board */}
+          <div className="flex justify-center">
+            <Board
+              boardSize={boardSize}
+              board={board}
+              onIntersectionClick={(index) => playMove(index)}
+              lastMoveIndex={lastMoveIndex ?? undefined}
+              previewColor={currentPlayer === 'B' ? 'black' : 'white'}
+              interactive={isPlaying && currentPlayer === 'B'}
+              candidates={candidates}
+            />
+          </div>
+
+          {/* Player info — Black (bottom) */}
+          <PlayerInfo
+            color="B"
+            name="You"
+            captures={captures.black}
+            isActive={isPlaying && currentPlayer === 'B'}
+            timeLeft="3:00"
+          />
+
+          {/* Game controls */}
+          {isPlaying && (
+            <div className="flex gap-2 justify-center flex-wrap">
+              <Button variant="outline" size="sm" onClick={() => pass()} data-testid="pass-button">
+                <SkipForward size={16} />
+                Pass
+              </Button>
+
+              <Button variant="outline" size="sm" onClick={() => undo()} data-testid="undo-button">
+                <RotateCcw size={16} />
+                Undo
+              </Button>
+
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => resign(currentPlayer)}
+                data-testid="resign-button"
+              >
+                <Flag size={16} />
+                Resign
+              </Button>
+            </div>
+          )}
+
+          {!isPlaying && !isFinished && (
+            <div className="text-center py-4 text-sm" style={{ color: 'var(--text-muted)' }}>
+              No active game. Start a{' '}
+              <Link to="/quick-go" style={{ color: 'var(--accent)' }}>
+                Quick Go
+              </Link>{' '}
+              game.
+            </div>
+          )}
+        </div>
+
+        {/* Right column: Win Rate + Move History + Game Info */}
+        <div className="space-y-4 order-3">
+          {/* Win Rate Graph — live win rate per move */}
+          {winRateHistory.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span>Win Rate</span>
+                  {currentWinRate !== null && (
+                    <span
+                      className="text-xs font-bold px-2 py-0.5 rounded-full"
+                      style={{
+                        backgroundColor:
+                          currentWinRate >= 55
+                            ? 'rgba(34, 197, 94, 0.15)'
+                            : currentWinRate <= 45
+                              ? 'rgba(239, 68, 68, 0.15)'
+                              : 'rgba(59, 130, 246, 0.15)',
+                        color:
+                          currentWinRate >= 55
+                            ? 'var(--success)'
+                            : currentWinRate <= 45
+                              ? 'var(--danger)'
+                              : 'var(--accent)',
+                      }}
+                    >
+                      B {currentWinRate.toFixed(1)}%
+                    </span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <WinRateGraph data={winRateHistory} height={120} currentMove={moveHistory.length} />
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader className="pb-2">
