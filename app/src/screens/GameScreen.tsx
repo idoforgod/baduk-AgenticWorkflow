@@ -6,18 +6,23 @@
 // =============================================================================
 
 import { ChevronLeft, Flag, RotateCcw, SkipForward } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Board } from '../components/board/Board'
 import { CoachPanel } from '../components/board/CoachPanel'
+import { ExplanationCard } from '../components/board/ExplanationCard'
 import { WinRateGraph } from '../components/board/WinRateGraph'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { SettingsRepository } from '../db/repositories/settings-repository'
 import { useGameStore } from '../game-engine/store'
 import { useAiOpponent } from '../hooks/useAiOpponent'
 import { useCoaching } from '../hooks/useCoaching'
+import { useExplanation } from '../hooks/useExplanation'
 import { useKataGoInit } from '../hooks/useKataGo'
 import { useKataGoAnalysis } from '../hooks/useKataGoAnalysis'
+import { useSoundEffect } from '../hooks/useSoundEffect'
 import { useWinRateStore } from '../hooks/useWinRateStore'
 
 // ---------------------------------------------------------------------------
@@ -143,6 +148,16 @@ export function GameScreen() {
 
   const lastMoveIndex = moveHistory.length > 0 ? moveHistory[moveHistory.length - 1].index : null
 
+  // Sound effects — read setting from storage once on mount
+  const [soundEnabled, setSoundEnabled] = useState(true)
+  useEffect(() => {
+    const repo = new SettingsRepository()
+    repo.getSettingWithDefault('soundEnabled', true).then((r) => {
+      if (r.ok) setSoundEnabled(r.value as boolean)
+    })
+  }, [])
+  useSoundEffect(soundEnabled)
+
   // KataGo lifecycle: initialize on first game, shutdown on unmount
   const { kataGoState: initState, kataGoError: initError } = useKataGoInit()
 
@@ -161,12 +176,44 @@ export function GameScreen() {
   // Coaching messages from AI coach
   const { messages: coachingMessages } = useCoaching()
 
+  // Move explanation (3-tier: beginner/intermediate/advanced)
+  const { explanation, tier, onTierChange } = useExplanation()
+
   // Win rate history from shared store (fed by both useKataGoAnalysis and useAiOpponent)
   const winRateHistory = useWinRateStore((s) => s.history)
   const currentWinRate = useWinRateStore((s) => s.currentWinRate)
 
   const isPlaying = status === 'playing'
   const isFinished = status === 'finished'
+  const [isSaving, setIsSaving] = useState(false)
+  const [_saveDone, setSaveDone] = useState(false)
+  const saveAttemptedRef = useRef(false)
+
+  const saveGame = useGameStore((s) => s.saveGame)
+
+  // Auto-save when game finishes (resolves N6: race condition)
+  useEffect(() => {
+    if (status !== 'finished' || !gameId || saveAttemptedRef.current) return
+    saveAttemptedRef.current = true
+
+    // Archive win rate data for Last Game Highlights (session-only)
+    useWinRateStore.getState().archiveCurrentGame()
+
+    setIsSaving(true)
+    saveGame().then((res) => {
+      setIsSaving(false)
+      setSaveDone(res.success)
+    })
+  }, [status, gameId, saveGame])
+
+  // Reset save state when a new game starts
+  useEffect(() => {
+    if (status === 'playing') {
+      saveAttemptedRef.current = false
+      setSaveDone(false)
+      setIsSaving(false)
+    }
+  }, [status])
 
   const displayGameId = id ?? gameId
 
@@ -197,9 +244,15 @@ export function GameScreen() {
           Game over — {result.resultString}
           {displayGameId && (
             <div className="mt-2">
-              <Button size="sm" asChild>
-                <Link to={`/analysis/${displayGameId}`}>View Analysis</Link>
-              </Button>
+              {isSaving ? (
+                <Button size="sm" disabled>
+                  Saving...
+                </Button>
+              ) : (
+                <Button size="sm" asChild>
+                  <Link to={`/analysis/${displayGameId}`}>View Analysis</Link>
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -210,6 +263,22 @@ export function GameScreen() {
         <div className="space-y-4 order-2 lg:order-1">
           {/* AI Coach Panel — coaching messages */}
           {isPlaying && <CoachPanel messages={coachingMessages} />}
+
+          {/* Move Explanation — 3-tier (beginner/intermediate/advanced) */}
+          {isPlaying && explanation && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Move Explanation</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <ExplanationCard
+                  explanation={explanation}
+                  tier={tier}
+                  onTierChange={onTierChange}
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Policy Network — AI Candidate Moves */}
           <Card>

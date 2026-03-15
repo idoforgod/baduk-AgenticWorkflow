@@ -38,25 +38,20 @@ function getQualityColor(quality: string | null): string {
 /**
  * Renders an explanation card with text from the explanation engine,
  * a move quality badge, and a 3-tier toggle (beginner/intermediate/advanced).
+ *
+ * Designed to be placed inside a parent Card component (no own border/bg).
+ * Fits within a 260px sidebar column.
  */
 export function ExplanationCard({ explanation, tier, onTierChange }: ExplanationCardProps) {
   const qualityColor = getQualityColor(explanation.moveQuality)
 
   return (
-    <div
-      data-testid="explanation-card"
-      style={{
-        border: '1px solid #e0e0e0',
-        borderRadius: '8px',
-        padding: '12px 16px',
-        backgroundColor: '#fafafa',
-        maxWidth: '400px',
-      }}
-    >
-      {/* Tier toggle */}
+    <div data-testid="explanation-card">
+      {/* Tier toggle — wrap to prevent overflow in narrow columns */}
       <div
         style={{
           display: 'flex',
+          flexWrap: 'wrap',
           gap: '4px',
           marginBottom: '8px',
         }}
@@ -69,14 +64,16 @@ export function ExplanationCard({ explanation, tier, onTierChange }: Explanation
             onClick={() => onTierChange(t)}
             data-testid={`tier-${t}`}
             style={{
-              padding: '4px 10px',
+              padding: '3px 8px',
               fontSize: '11px',
               fontWeight: t === tier ? 700 : 400,
-              border: t === tier ? '1px solid #2196F3' : '1px solid #ddd',
+              border:
+                t === tier ? '1px solid var(--accent, #2196F3)' : '1px solid var(--border, #ddd)',
               borderRadius: '4px',
-              backgroundColor: t === tier ? '#e3f2fd' : '#fff',
-              color: t === tier ? '#1565c0' : '#666',
+              backgroundColor: t === tier ? 'rgba(33, 150, 243, 0.15)' : 'transparent',
+              color: t === tier ? 'var(--accent, #1565c0)' : 'var(--text-muted, #666)',
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
             }}
           >
             {TIER_LABELS[t]}
@@ -108,9 +105,10 @@ export function ExplanationCard({ explanation, tier, onTierChange }: Explanation
       <p
         style={{
           margin: 0,
-          fontSize: '13px',
+          fontSize: '12px',
           lineHeight: 1.5,
-          color: '#333',
+          color: 'var(--text-secondary, #333)',
+          wordBreak: 'break-word',
         }}
         data-testid="explanation-text"
       >
@@ -120,9 +118,9 @@ export function ExplanationCard({ explanation, tier, onTierChange }: Explanation
       {/* Category label */}
       <div
         style={{
-          marginTop: '8px',
+          marginTop: '6px',
           fontSize: '10px',
-          color: '#999',
+          color: 'var(--text-muted, #999)',
           textTransform: 'capitalize',
         }}
         data-testid="explanation-category"

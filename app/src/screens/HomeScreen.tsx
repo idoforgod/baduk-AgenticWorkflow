@@ -1,37 +1,30 @@
 // =============================================================================
-// screens/HomeScreen.tsx — Landing page
+// screens/HomeScreen.tsx — Landing page with real data
 // =============================================================================
-// Shows: Quick Go start button, recent games list, player stats summary.
+// Shows: Quick Go start button, real player stats, recent games list,
+// quick guide. Stats and games come from useGameHistory (SQLite via Zod).
 // =============================================================================
 
-import { Clock, Trophy, Zap } from 'lucide-react'
+import { BarChart3, Clock, Trophy, Zap } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { GrowthChart } from '../components/dashboard/GrowthChart'
+import { LastGameHighlights } from '../components/dashboard/LastGameHighlights'
+import { WeaknessInsight } from '../components/dashboard/WeaknessInsight'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { useGameStore } from '../game-engine/store'
+import { type RecentGame, useGameHistory } from '../hooks/useGameHistory'
+import { useWinRateStore } from '../hooks/useWinRateStore'
 
 // ---------------------------------------------------------------------------
-// Mock recent games data (will be replaced by GameRepository in Step 18)
+// Result badge
 // ---------------------------------------------------------------------------
-interface RecentGame {
-  id: string
-  result: 'win' | 'loss' | 'ongoing'
-  boardSize: 9 | 13 | 19
-  moveCount: number
-  date: string
-  opponent: string
-}
-
-const MOCK_RECENT_GAMES: RecentGame[] = [
-  { id: '1', result: 'win', boardSize: 9, moveCount: 42, date: 'Today', opponent: 'AI Lv.5' },
-  { id: '2', result: 'loss', boardSize: 9, moveCount: 38, date: 'Yesterday', opponent: 'AI Lv.8' },
-  { id: '3', result: 'win', boardSize: 13, moveCount: 95, date: '2 days ago', opponent: 'AI Lv.3' },
-]
 
 function ResultBadge({ result }: { result: RecentGame['result'] }) {
   if (result === 'win') return <Badge variant="success">Win</Badge>
   if (result === 'loss') return <Badge variant="destructive">Loss</Badge>
+  if (result === 'draw') return <Badge variant="secondary">Draw</Badge>
   return <Badge variant="secondary">Ongoing</Badge>
 }
 
@@ -78,6 +71,12 @@ export function HomeScreen() {
   const status = useGameStore((s) => s.status)
   const hasActiveGame = status === 'playing'
 
+  // Real data from SQLite (Zod validated)
+  const { games, stats, boardSizeStats, isLoading } = useGameHistory()
+
+  // Last game highlights (session-only)
+  const lastGameHistory = useWinRateStore((s) => s.lastGameHistory)
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
       {/* Hero section */}
@@ -105,7 +104,7 @@ export function HomeScreen() {
         </div>
       </section>
 
-      {/* Stats row */}
+      {/* Stats row — real data */}
       <section aria-labelledby="stats-heading">
         <h2
           id="stats-heading"
@@ -115,14 +114,74 @@ export function HomeScreen() {
           Your Stats
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard icon={<Trophy size={16} />} label="Win Rate" value="58%" sub="Last 30 days" />
-          <StatCard icon={<Clock size={16} />} label="Games" value="24" sub="This month" />
-          <StatCard icon={<Zap size={16} />} label="Best Streak" value="5" sub="Wins in a row" />
-          <StatCard icon={<Trophy size={16} />} label="Rating" value="12k" sub="Estimated" />
+          <StatCard
+            icon={<Trophy size={16} />}
+            label="Win Rate"
+            value={isLoading ? '—' : `${stats.winRate}%`}
+            sub="All games"
+          />
+          <StatCard
+            icon={<Clock size={16} />}
+            label="Games"
+            value={isLoading ? '—' : String(stats.totalGames)}
+            sub="Total played"
+          />
+          <StatCard
+            icon={<Zap size={16} />}
+            label="Current Streak"
+            value={isLoading ? '—' : String(stats.currentStreak)}
+            sub={`Best: ${stats.bestStreak}`}
+          />
+          <StatCard
+            icon={<BarChart3 size={16} />}
+            label="Board Sizes"
+            value={isLoading ? '—' : String(boardSizeStats.length)}
+            sub={
+              boardSizeStats.map((b) => `${b.boardSize}x${b.boardSize}`).join(', ') || 'None yet'
+            }
+          />
         </div>
       </section>
 
-      {/* Recent games */}
+      {/* Board size breakdown — show if 2+ sizes played */}
+      {boardSizeStats.length >= 2 && (
+        <section aria-labelledby="boardsize-heading">
+          <h2
+            id="boardsize-heading"
+            className="text-sm font-medium mb-3"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Win Rate by Board Size
+          </h2>
+          <div className="grid grid-cols-3 gap-3">
+            {boardSizeStats.map((b) => (
+              <div
+                key={b.boardSize}
+                className="p-3 rounded-lg border text-center"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border)',
+                }}
+              >
+                <div className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+                  {b.winRate}%
+                </div>
+                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {b.boardSize}x{b.boardSize} ({b.games} games)
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Growth chart — 5-game moving average */}
+      <GrowthChart games={games} />
+
+      {/* Last game highlights — session only */}
+      <LastGameHighlights lastGameHistory={lastGameHistory} />
+
+      {/* Recent games — real data */}
       <section aria-labelledby="recent-heading">
         <h2
           id="recent-heading"
@@ -132,7 +191,13 @@ export function HomeScreen() {
           Recent Games
         </h2>
 
-        {MOCK_RECENT_GAMES.length === 0 ? (
+        {isLoading ? (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <p style={{ color: 'var(--text-muted)' }}>Loading games...</p>
+            </CardContent>
+          </Card>
+        ) : games.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center">
               <p style={{ color: 'var(--text-muted)' }}>
@@ -142,7 +207,7 @@ export function HomeScreen() {
           </Card>
         ) : (
           <div className="space-y-2">
-            {MOCK_RECENT_GAMES.map((game) => (
+            {games.map((game) => (
               <Link key={game.id} to={`/analysis/${game.id}`} style={{ textDecoration: 'none' }}>
                 <Card className="hover:border-[var(--accent)] transition-colors cursor-pointer">
                   <CardContent className="py-3">
@@ -154,7 +219,7 @@ export function HomeScreen() {
                             className="text-sm font-medium"
                             style={{ color: 'var(--text-primary)' }}
                           >
-                            {game.boardSize}x{game.boardSize} vs {game.opponent}
+                            {game.boardSize}x{game.boardSize} {game.opponent}
                           </div>
                           <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
                             {game.moveCount} moves
@@ -172,6 +237,9 @@ export function HomeScreen() {
           </div>
         )}
       </section>
+
+      {/* Weakness insights — areas to improve */}
+      <WeaknessInsight boardSizeStats={boardSizeStats} games={games} />
 
       {/* Quick tips */}
       <Card>

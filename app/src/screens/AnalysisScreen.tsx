@@ -1,60 +1,36 @@
 // =============================================================================
 // screens/AnalysisScreen.tsx — Post-game analysis screen
 // =============================================================================
-// Shows: board with heatmap overlay, win-rate graph placeholder, explanation
-// cards, and move-by-move review navigation.
+// Shows: real Go board, win-rate graph, explanation cards, move navigation.
+//
+// Uses useReviewStore (NOT useGameStore) to avoid destroying active games.
+// Loads saved games via load-game-adapter with Zod validation.
 // =============================================================================
 
-import {
-  ChevronFirst,
-  ChevronLast,
-  ChevronLeft,
-  ChevronRight,
-  Lightbulb,
-  TrendingUp,
-} from 'lucide-react'
-import { useState } from 'react'
+import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react'
+import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { BoardPlaceholder } from '../components/board/BoardPlaceholder'
+import { Board } from '../components/board/Board'
+import { WinRateGraph } from '../components/board/WinRateGraph'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { useGameStore } from '../game-engine/store'
+import { loadGameFromStorage } from '../db/adapters/load-game-adapter'
+import { useReviewStore } from '../hooks/useReviewStore'
+import { useWinRateStore } from '../hooks/useWinRateStore'
 
 // ---------------------------------------------------------------------------
-// Win-rate graph placeholder (recharts integration deferred to Step 18)
+// Explanation card (local component — analysis-specific)
 // ---------------------------------------------------------------------------
-function WinRateGraph() {
-  return (
-    <div
-      className="w-full h-32 rounded-md flex items-center justify-center border"
-      style={{
-        backgroundColor: 'var(--bg-elevated)',
-        borderColor: 'var(--border)',
-        color: 'var(--text-muted)',
-      }}
-      data-testid="win-rate-graph"
-    >
-      <div className="text-center text-sm">
-        <TrendingUp size={24} className="mx-auto mb-1" style={{ opacity: 0.4 }} />
-        Win rate graph (Step 18)
-      </div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Explanation card
-// ---------------------------------------------------------------------------
-interface ExplanationCardProps {
+interface AnalysisExplanationProps {
   title: string
   explanation: string
   type: 'best' | 'mistake' | 'key'
   moveNumber?: number
 }
 
-function ExplanationCard({ title, explanation, type, moveNumber }: ExplanationCardProps) {
+function AnalysisExplanation({ title, explanation, type, moveNumber }: AnalysisExplanationProps) {
   const colorMap = {
     best: 'var(--success)',
     mistake: 'var(--danger)',
@@ -120,10 +96,10 @@ function MoveNav({ current, total, onFirst, onPrev, onNext, onLast }: MoveNavPro
 }
 
 // ---------------------------------------------------------------------------
-// AnalysisScreen
+// Mock explanation data (will be replaced when analysis persistence is added)
 // ---------------------------------------------------------------------------
 
-const MOCK_EXPLANATIONS: ExplanationCardProps[] = [
+const MOCK_EXPLANATIONS: AnalysisExplanationProps[] = [
   {
     type: 'best',
     title: 'Your Best Move',
@@ -147,19 +123,47 @@ const MOCK_EXPLANATIONS: ExplanationCardProps[] = [
   },
 ]
 
+// ---------------------------------------------------------------------------
+// AnalysisScreen
+// ---------------------------------------------------------------------------
+
 export function AnalysisScreen() {
   const { id } = useParams<{ id: string }>()
-  const moveHistory = useGameStore((s) => s.moveHistory)
-  const boardSize = useGameStore((s) => s.boardSize)
-  const goToMove = useGameStore((s) => s.goToMove)
-  const currentMoveIndex = useGameStore((s) => s.currentMoveIndex)
 
-  const [reviewMove, setReviewMove] = useState(currentMoveIndex)
+  // Review store — independent from active game
+  const board = useReviewStore((s) => s.board)
+  const boardSize = useReviewStore((s) => s.boardSize)
+  const moveHistory = useReviewStore((s) => s.moveHistory)
+  const currentMoveIndex = useReviewStore((s) => s.currentMoveIndex)
+  const isLoaded = useReviewStore((s) => s.isLoaded)
+  const goToMove = useReviewStore((s) => s.goToMove)
+  const loadGame = useReviewStore((s) => s.loadGame)
+
+  // Win rate data (session-only, from the game that was just played)
+  const winRateHistory = useWinRateStore((s) => s.history)
+
   const totalMoves = moveHistory.length
+
+  // Load saved game when navigating to /analysis/:id
+  useEffect(() => {
+    if (!id) return
+    // Don't reload if already viewing this game
+    const currentGameId = useReviewStore.getState().gameId
+    if (currentGameId === id && isLoaded) return
+
+    loadGameFromStorage(id).then((data) => {
+      if (data) {
+        loadGame(id, data.moves, data.config.boardSize)
+      }
+    })
+  }, [id, isLoaded, loadGame])
+
+  // Find last move index for marker
+  const lastMove = currentMoveIndex > 0 ? moveHistory[currentMoveIndex - 1] : undefined
+  const lastMoveIndex = lastMove?.index ?? null
 
   function handleGoToMove(n: number) {
     const clamped = Math.max(0, Math.min(n, totalMoves))
-    setReviewMove(clamped)
     goToMove(clamped)
   }
 
@@ -191,26 +195,48 @@ export function AnalysisScreen() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-        {/* Left: board + navigation */}
+        {/* Left: board + navigation + win rate */}
         <div className="space-y-4">
+          {/* Real Board — interactive=false for review mode */}
           <div className="flex justify-center">
-            <BoardPlaceholder boardSize={boardSize} />
+            <Board
+              boardSize={boardSize}
+              board={board}
+              {...(lastMoveIndex != null ? { lastMoveIndex } : {})}
+              interactive={false}
+              showCoordinates={true}
+              svgSize={450}
+            />
           </div>
 
           {/* Move navigation */}
           <div className="flex justify-center">
             <MoveNav
-              current={reviewMove}
+              current={currentMoveIndex}
               total={totalMoves}
               onFirst={() => handleGoToMove(0)}
-              onPrev={() => handleGoToMove(reviewMove - 1)}
-              onNext={() => handleGoToMove(reviewMove + 1)}
+              onPrev={() => handleGoToMove(currentMoveIndex - 1)}
+              onNext={() => handleGoToMove(currentMoveIndex + 1)}
               onLast={() => handleGoToMove(totalMoves)}
             />
           </div>
 
-          {/* Win rate graph */}
-          <WinRateGraph />
+          {/* Win rate graph — shows session data if available */}
+          {winRateHistory.length > 0 ? (
+            <WinRateGraph data={winRateHistory} height={120} currentMove={currentMoveIndex} />
+          ) : (
+            <div
+              className="w-full h-24 rounded-md flex items-center justify-center border"
+              style={{
+                backgroundColor: 'var(--bg-elevated)',
+                borderColor: 'var(--border)',
+                color: 'var(--text-muted)',
+              }}
+              data-testid="win-rate-graph-empty-placeholder"
+            >
+              <span className="text-xs">No win rate data for this game</span>
+            </div>
+          )}
         </div>
 
         {/* Right: analysis tabs */}
@@ -227,7 +253,7 @@ export function AnalysisScreen() {
 
             <TabsContent value="summary" className="space-y-3 mt-3">
               {MOCK_EXPLANATIONS.map((e) => (
-                <ExplanationCard key={e.type} {...e} />
+                <AnalysisExplanation key={e.type} {...e} />
               ))}
             </TabsContent>
 
@@ -242,7 +268,9 @@ export function AnalysisScreen() {
                 <CardContent className="pt-0">
                   {totalMoves === 0 ? (
                     <p className="text-sm py-4 text-center" style={{ color: 'var(--text-muted)' }}>
-                      Load a finished game to review moves.
+                      {isLoaded
+                        ? 'This game has no moves.'
+                        : 'Load a finished game to review moves.'}
                     </p>
                   ) : (
                     <div className="space-y-0.5 max-h-80 overflow-y-auto text-xs font-mono">
@@ -254,7 +282,7 @@ export function AnalysisScreen() {
                           className="w-full flex items-center gap-2 px-2 py-1 rounded text-left"
                           style={{
                             backgroundColor:
-                              i + 1 === reviewMove ? 'var(--bg-elevated)' : 'transparent',
+                              i + 1 === currentMoveIndex ? 'var(--bg-elevated)' : 'transparent',
                             color: 'var(--text-secondary)',
                             cursor: 'pointer',
                           }}

@@ -59,6 +59,10 @@ export interface GameStoreState {
   // --- Captures ---
   captures: { black: number; white: number }
 
+  // --- Timestamps ---
+  /** Unix epoch seconds when the game was created. Null before game starts. */
+  startedAt: number | null
+
   // --- Lifecycle ---
   status: 'not_started' | 'playing' | 'scoring' | 'finished'
   result: GameResult | null

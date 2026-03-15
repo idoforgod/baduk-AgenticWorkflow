@@ -180,11 +180,24 @@ export function QuickGoScreen() {
   const createGame = useGameStore((s) => s.createGame)
 
   function handleStart() {
+    const selectedDiffConfig = DIFFICULTY_CONFIGS.find((d) => d.preset === difficulty)
+    const selectedTimeConfig = TIME_CONFIGS.find((t) => t.preset === timePreset)
+
     createGame(boardSize, boardSize === 9 ? 5.5 : 7.5, {
       boardSize,
       komi: boardSize === 9 ? 5.5 : 7.5,
       rules: 'tromp-taylor',
       mode: 'vs-ai',
+      ...(selectedDiffConfig ? { aiLevel: selectedDiffConfig.aiLevel } : {}),
+      ...(selectedTimeConfig
+        ? {
+            timeControl: {
+              mainTime: selectedTimeConfig.mainTime,
+              byoyomiPeriods: 5,
+              byoyomiTime: selectedTimeConfig.byoyomiTime,
+            },
+          }
+        : {}),
     })
     navigate('/game')
   }
