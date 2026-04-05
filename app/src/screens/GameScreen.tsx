@@ -6,7 +6,7 @@
 // =============================================================================
 
 import { ChevronLeft, Flag, RotateCcw, SkipForward } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Board } from '../components/board/Board'
 import { CoachPanel } from '../components/board/CoachPanel'
@@ -217,8 +217,35 @@ export function GameScreen() {
 
   const displayGameId = id ?? gameId
 
+  // Measure center column width to compute board pixel size.
+  // Uses ResizeObserver + window resize for WKWebView reliability.
+  const centerColRef = useRef<HTMLDivElement>(null)
+  const [boardPixelSize, setBoardPixelSize] = useState(500)
+
+  const updateBoardSize = useCallback(() => {
+    const el = centerColRef.current
+    if (!el) return
+    const colWidth = el.clientWidth
+    const maxByHeight = window.innerHeight - 350
+    const size = Math.max(300, Math.min(colWidth, maxByHeight))
+    setBoardPixelSize(Math.round(size))
+  }, [])
+
+  useEffect(() => {
+    const el = centerColRef.current
+    if (!el) return
+    updateBoardSize()
+    const ro = new ResizeObserver(updateBoardSize)
+    ro.observe(el)
+    window.addEventListener('resize', updateBoardSize)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', updateBoardSize)
+    }
+  }, [updateBoardSize])
+
   return (
-    <div className="w-full px-4 py-4">
+    <div className="mx-auto px-4 py-6" style={{ maxWidth: 'min(100%, 1600px)' }}>
       {/* Back navigation */}
       <div className="mb-4">
         <Button variant="ghost" size="sm" asChild>
@@ -258,7 +285,7 @@ export function GameScreen() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_3fr_1fr] gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(220px,280px)_1fr_minmax(220px,280px)] gap-4">
         {/* Left column: AI Coach + AI Analysis */}
         <div className="space-y-4 order-2 lg:order-1">
           {/* AI Coach Panel — coaching messages */}
@@ -392,7 +419,7 @@ export function GameScreen() {
         </div>
 
         {/* Center column: board + controls */}
-        <div className="space-y-4 order-1 lg:order-2">
+        <div ref={centerColRef} className="space-y-4 order-1 lg:order-2">
           {/* Player info — White (top) */}
           <PlayerInfo
             color="W"
@@ -402,8 +429,8 @@ export function GameScreen() {
             timeLeft="3:00"
           />
 
-          {/* Board — fills center column width, square via SVG viewBox */}
-          <div>
+          {/* Board — JS-measured responsive sizing for WKWebView reliability */}
+          <div className="flex justify-center">
             <Board
               boardSize={boardSize}
               board={board}
@@ -412,6 +439,7 @@ export function GameScreen() {
               previewColor={currentPlayer === 'B' ? 'black' : 'white'}
               interactive={isPlaying && currentPlayer === 'B'}
               candidates={candidates}
+              svgSize={boardPixelSize}
             />
           </div>
 

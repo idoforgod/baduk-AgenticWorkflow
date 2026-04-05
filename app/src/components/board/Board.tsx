@@ -6,7 +6,7 @@
 // The grid is clean and traditional; innovation lives in overlays.
 // =============================================================================
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { BranchMarker } from './BranchMarker'
 import { Coordinates } from './Coordinates'
 import { DeadStoneMarker } from './DeadStoneMarker'
@@ -146,31 +146,12 @@ export function Board({
   whiteTerritory,
   deadStones,
   branches,
-  svgSize,
+  svgSize = 500,
   interactive = true,
   candidates,
 }: BoardProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
+  const layout = computeLayout(boardSize, svgSize)
   const svgRef = useRef<SVGSVGElement>(null)
-
-  // Measure container width via ResizeObserver for responsive sizing.
-  // If svgSize is explicitly provided (e.g. tests), skip measurement.
-  const [measuredSize, setMeasuredSize] = useState(svgSize ?? 500)
-
-  useEffect(() => {
-    if (svgSize !== undefined) return // explicit size overrides measurement
-    const el = containerRef.current
-    if (!el || typeof ResizeObserver === 'undefined') return
-    const observer = new ResizeObserver((entries) => {
-      const width = Math.round(entries[0].contentRect.width)
-      if (width > 0) setMeasuredSize(width)
-    })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [svgSize])
-
-  const effectiveSize = svgSize ?? measuredSize
-  const layout = computeLayout(boardSize, effectiveSize)
 
   // Tap-Preview-Confirm state
   const [previewIdx, setPreviewIdx] = useState<number | null>(null)
@@ -199,99 +180,97 @@ export function Board({
   const boardBgColor = '#DEB887'
 
   return (
-    <div ref={containerRef} style={{ width: '100%' }}>
-      <svg
-        ref={svgRef}
-        width={layout.width}
-        height={layout.height}
-        viewBox={`0 0 ${layout.width} ${layout.height}`}
-        data-testid="go-board"
-        style={{ userSelect: 'none', display: 'block' }}
-      >
-        <title>{`Go Board ${boardSize}×${boardSize}`}</title>
-        {/* Board background */}
-        <rect x={0} y={0} width={layout.width} height={layout.height} fill={boardBgColor} rx={4} />
+    <svg
+      ref={svgRef}
+      width={svgSize}
+      height={svgSize}
+      viewBox={`0 0 ${layout.width} ${layout.height}`}
+      data-testid="go-board"
+      style={{ userSelect: 'none', display: 'block' }}
+    >
+      <title>{`Go Board ${boardSize}×${boardSize}`}</title>
+      {/* Board background */}
+      <rect x={0} y={0} width={layout.width} height={layout.height} fill={boardBgColor} rx={4} />
 
-        {/* SVG defs (gradients, filters) */}
-        <StoneDefs />
+      {/* SVG defs (gradients, filters) */}
+      <StoneDefs />
 
-        {/* Coordinates */}
-        {showCoordinates && <Coordinates layout={layout} />}
+      {/* Coordinates */}
+      {showCoordinates && <Coordinates layout={layout} />}
 
-        {/* Grid lines */}
-        <GridLines layout={layout} />
+      {/* Grid lines */}
+      <GridLines layout={layout} />
 
-        {/* Star points */}
-        <StarPoints layout={layout} />
+      {/* Star points */}
+      <StarPoints layout={layout} />
 
-        {/* Heatmap overlay (behind stones) */}
-        {showHeatmap && analysisData && (
-          <Heatmap layout={layout} moveInfos={analysisData.moveInfos} boardSize={boardSize} />
-        )}
+      {/* Heatmap overlay (behind stones) */}
+      {showHeatmap && analysisData && (
+        <Heatmap layout={layout} moveInfos={analysisData.moveInfos} boardSize={boardSize} />
+      )}
 
-        {/* Territory overlay */}
-        {blackTerritory && whiteTerritory && (
-          <TerritoryOverlay
-            layout={layout}
-            boardSize={boardSize}
-            blackTerritory={blackTerritory}
-            whiteTerritory={whiteTerritory}
-          />
-        )}
+      {/* Territory overlay */}
+      {blackTerritory && whiteTerritory && (
+        <TerritoryOverlay
+          layout={layout}
+          boardSize={boardSize}
+          blackTerritory={blackTerritory}
+          whiteTerritory={whiteTerritory}
+        />
+      )}
 
-        {/* Stones */}
-        {Array.from(board).map((cell, pos) => {
-          if (cell === 0) return null
-          const { row, col } = indexToRowCol(pos, boardSize)
+      {/* Stones */}
+      {Array.from(board).map((cell, pos) => {
+        if (cell === 0) return null
+        const { row, col } = indexToRowCol(pos, boardSize)
+        const { x, y } = rowColToSvg(row, col, layout)
+        const color = cell === 1 ? 'black' : 'white'
+        return (
+          <Stone key={`stone-${row}-${col}`} cx={x} cy={y} r={layout.stoneRadius} color={color} />
+        )
+      })}
+
+      {/* Dead stone markers */}
+      {deadStones && deadStones.size > 0 && (
+        <DeadStoneMarker layout={layout} boardSize={boardSize} deadStones={deadStones} />
+      )}
+
+      {/* Last move marker */}
+      {lastMoveIndex != null &&
+        lastMoveIndex >= 0 &&
+        board[lastMoveIndex] !== 0 &&
+        (() => {
+          const { row, col } = indexToRowCol(lastMoveIndex, boardSize)
           const { x, y } = rowColToSvg(row, col, layout)
-          const color = cell === 1 ? 'black' : 'white'
+          const stoneColor = board[lastMoveIndex] === 1 ? ('black' as const) : ('white' as const)
           return (
-            <Stone key={`stone-${row}-${col}`} cx={x} cy={y} r={layout.stoneRadius} color={color} />
+            <LastMoveMarker cx={x} cy={y} size={layout.stoneRadius * 2} stoneColor={stoneColor} />
           )
-        })}
+        })()}
 
-        {/* Dead stone markers */}
-        {deadStones && deadStones.size > 0 && (
-          <DeadStoneMarker layout={layout} boardSize={boardSize} deadStones={deadStones} />
-        )}
+      {/* Ghost stone preview */}
+      {effectivePreviewIndex != null &&
+        board[effectivePreviewIndex] === 0 &&
+        (() => {
+          const { row, col } = indexToRowCol(effectivePreviewIndex, boardSize)
+          const { x, y } = rowColToSvg(row, col, layout)
+          return <GhostStone cx={x} cy={y} r={layout.stoneRadius} color={previewColor} />
+        })()}
 
-        {/* Last move marker */}
-        {lastMoveIndex != null &&
-          lastMoveIndex >= 0 &&
-          board[lastMoveIndex] !== 0 &&
-          (() => {
-            const { row, col } = indexToRowCol(lastMoveIndex, boardSize)
-            const { x, y } = rowColToSvg(row, col, layout)
-            const stoneColor = board[lastMoveIndex] === 1 ? ('black' as const) : ('white' as const)
-            return (
-              <LastMoveMarker cx={x} cy={y} size={layout.stoneRadius * 2} stoneColor={stoneColor} />
-            )
-          })()}
+      {/* Branch markers */}
+      {branches && branches.length > 0 && (
+        <BranchMarker layout={layout} boardSize={boardSize} branches={branches} />
+      )}
 
-        {/* Ghost stone preview */}
-        {effectivePreviewIndex != null &&
-          board[effectivePreviewIndex] === 0 &&
-          (() => {
-            const { row, col } = indexToRowCol(effectivePreviewIndex, boardSize)
-            const { x, y } = rowColToSvg(row, col, layout)
-            return <GhostStone cx={x} cy={y} r={layout.stoneRadius} color={previewColor} />
-          })()}
+      {/* Policy network candidate moves */}
+      {candidates && candidates.length > 0 && (
+        <PolicyOverlay layout={layout} boardSize={boardSize} candidates={candidates} />
+      )}
 
-        {/* Branch markers */}
-        {branches && branches.length > 0 && (
-          <BranchMarker layout={layout} boardSize={boardSize} branches={branches} />
-        )}
-
-        {/* Policy network candidate moves */}
-        {candidates && candidates.length > 0 && (
-          <PolicyOverlay layout={layout} boardSize={boardSize} candidates={candidates} />
-        )}
-
-        {/* Interaction click targets (on top of everything) */}
-        {interactive && onIntersectionClick && (
-          <ClickTargets layout={layout} onIntersectionClick={handleIntersectionClick} />
-        )}
-      </svg>
-    </div>
+      {/* Interaction click targets (on top of everything) */}
+      {interactive && onIntersectionClick && (
+        <ClickTargets layout={layout} onIntersectionClick={handleIntersectionClick} />
+      )}
+    </svg>
   )
 }
