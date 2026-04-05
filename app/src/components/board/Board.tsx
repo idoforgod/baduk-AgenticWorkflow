@@ -182,11 +182,10 @@ export function Board({
   return (
     <svg
       ref={svgRef}
-      width={layout.width}
-      height={layout.height}
       viewBox={`0 0 ${layout.width} ${layout.height}`}
       data-testid="go-board"
-      style={{ userSelect: 'none' }}
+      className="responsive-board"
+      style={{ userSelect: 'none', width: '100%', height: 'auto', display: 'block' }}
     >
       <title>{`Go Board ${boardSize}×${boardSize}`}</title>
       {/* Board background */}

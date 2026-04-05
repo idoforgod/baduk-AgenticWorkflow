@@ -206,7 +206,7 @@ export function QuickGoScreen() {
   const selectedTime = TIME_CONFIGS.find((t) => t.preset === timePreset)
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+    <div className="mx-auto px-4 py-8 space-y-6" style={{ maxWidth: 'min(100%, 800px)' }}>
       <div className="text-center space-y-2">
         <h1
           className="text-3xl font-bold flex items-center justify-center gap-2"

@@ -78,7 +78,7 @@ export function HomeScreen() {
   const lastGameHistory = useWinRateStore((s) => s.lastGameHistory)
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+    <div className="mx-auto px-4 py-8 space-y-8" style={{ maxWidth: 'min(100%, 1200px)' }}>
       {/* Hero section */}
       <section className="text-center space-y-4">
         <h1 className="text-4xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>

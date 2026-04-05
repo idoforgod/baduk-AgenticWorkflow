@@ -218,7 +218,7 @@ export function GameScreen() {
   const displayGameId = id ?? gameId
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="mx-auto px-4 py-6" style={{ maxWidth: 'min(100%, 1600px)' }}>
       {/* Back navigation */}
       <div className="mb-4">
         <Button variant="ghost" size="sm" asChild>
@@ -258,7 +258,7 @@ export function GameScreen() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_260px] gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(220px,280px)_1fr_minmax(220px,280px)] gap-4">
         {/* Left column: AI Coach + AI Analysis */}
         <div className="space-y-4 order-2 lg:order-1">
           {/* AI Coach Panel — coaching messages */}
@@ -402,17 +402,25 @@ export function GameScreen() {
             timeLeft="3:00"
           />
 
-          {/* Board */}
+          {/* Board — responsive container: fills available width, capped by viewport height */}
           <div className="flex justify-center">
-            <Board
-              boardSize={boardSize}
-              board={board}
-              onIntersectionClick={(index) => playMove(index)}
-              lastMoveIndex={lastMoveIndex ?? undefined}
-              previewColor={currentPlayer === 'B' ? 'black' : 'white'}
-              interactive={isPlaying && currentPlayer === 'B'}
-              candidates={candidates}
-            />
+            <div
+              style={{
+                width: '100%',
+                maxWidth: 'min(100%, calc(100vh - 280px))',
+                aspectRatio: '1',
+              }}
+            >
+              <Board
+                boardSize={boardSize}
+                board={board}
+                onIntersectionClick={(index) => playMove(index)}
+                lastMoveIndex={lastMoveIndex ?? undefined}
+                previewColor={currentPlayer === 'B' ? 'black' : 'white'}
+                interactive={isPlaying && currentPlayer === 'B'}
+                candidates={candidates}
+              />
+            </div>
           </div>
 
           {/* Player info — Black (bottom) */}

@@ -766,11 +766,11 @@ describe('Board', () => {
     expect(screen.getByTestId('branch-markers')).toBeInTheDocument()
   })
 
-  it('accepts custom SVG size', () => {
+  it('accepts custom SVG size via viewBox', () => {
     const board = new Uint8Array(81)
     render(<Board boardSize={9} board={board} svgSize={300} />)
     const svg = screen.getByTestId('go-board')
-    expect(svg.getAttribute('width')).toBe('300')
-    expect(svg.getAttribute('height')).toBe('300')
+    // SVG is now responsive (no width/height attributes); size is controlled by viewBox
+    expect(svg.getAttribute('viewBox')).toBe('0 0 300 300')
   })
 })

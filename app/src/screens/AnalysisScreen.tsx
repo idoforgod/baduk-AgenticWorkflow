@@ -168,7 +168,7 @@ export function AnalysisScreen() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+    <div className="mx-auto px-4 py-6 space-y-6" style={{ maxWidth: 'min(100%, 1400px)' }}>
       {/* Navigation header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
@@ -194,19 +194,26 @@ export function AnalysisScreen() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(280px,360px)] gap-6">
         {/* Left: board + navigation + win rate */}
         <div className="space-y-4">
           {/* Real Board — interactive=false for review mode */}
           <div className="flex justify-center">
-            <Board
-              boardSize={boardSize}
-              board={board}
-              {...(lastMoveIndex != null ? { lastMoveIndex } : {})}
-              interactive={false}
-              showCoordinates={true}
-              svgSize={450}
-            />
+            <div
+              style={{
+                width: '100%',
+                maxWidth: 'min(100%, calc(100vh - 300px))',
+                aspectRatio: '1',
+              }}
+            >
+              <Board
+                boardSize={boardSize}
+                board={board}
+                {...(lastMoveIndex != null ? { lastMoveIndex } : {})}
+                interactive={false}
+                showCoordinates={true}
+              />
+            </div>
           </div>
 
           {/* Move navigation */}
